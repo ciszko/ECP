@@ -14,8 +14,9 @@ from fpdf import FPDF
 class App(Tk):
     def __init__(self, *kwargs, **args):
         Tk.__init__(self)
-        self.option_add("*Font", "Arial 8")
-        self.iconbitmap(r"./data/ecp.ico")
+
+        self.option_add("*Font", "Arial 8")                     # default font 
+        self.iconbitmap(r"./data/ecp.ico")                      # window icon
         self.menu = My_Menu(self, self)
         self.config(menu = self.menu)
         self.protocol("WM_DELETE_WINDOW", self.on_exit)
@@ -103,10 +104,6 @@ class DoubleSlider(Frame):
         for i in range(1, entries_len+1):
             self.master.entries[14, i].delete(0, 10)
             self.master.entries[14, i].insert(0, str(int((total[i] // 3600))) + ":" + str(int(total[i]%3600)// 60).zfill(2))
-            
-            
-        
-
 
 class PageTwo(Frame):
 
@@ -873,7 +870,6 @@ class Work_Time(LabelFrame):
             counter += 1
 
         # Table itself
-
         for column in range(1, self.t_width):
         
             for row in range(1, self.t_height):
@@ -981,7 +977,6 @@ class Work_Time(LabelFrame):
             for col in range (3,10):
                 self.entries[row, col].delete(0, 10)   
             if self.entries[row, 2].get() == "":
-                self.entries[row, 7].insert(0, 8)
                 self.entries[row, 6].insert(0, 8)
             else:
                 self.entries[row, 6].insert(0, int(self.entries[row, 2].get()))
@@ -992,7 +987,6 @@ class Work_Time(LabelFrame):
                 self.entries[row, col].delete(0, 10)   
             if self.entries[row, 2].get() == "":
                 self.entries[row, 7].insert(0, 8)
-                self.entries[row, 2].insert(0, 8)
             else:
                 self.entries[row, 7].insert(0, int(self.entries[row, 2].get()))
 
@@ -1002,9 +996,11 @@ class Work_Time(LabelFrame):
                 self.entries[row, col].delete(0, 10)   
             if self.entries[row, 2].get() == "":
                 self.entries[row, 8].insert(0, 8)
-                self.entries[row, 2].insert(0 ,8)
+                self.entries[row, 2].insert(0, 0)
             else:
-                self.entries[row, 8].insert(0, int(self.entries[row, 2].get()))
+                self.entries[row, 2].delete(0, 10)
+                self.entries[row, 8].insert(0, 8)
+                self.entries[row, 2].insert(0, 0)
 
         # "Chorobowe" insert
         def f6():
@@ -1014,9 +1010,11 @@ class Work_Time(LabelFrame):
                 self.entries[row, 9].insert(0, 8)        
             elif self.entries[row, 2].get() == "":
                 self.entries[row, 9].insert(0, 8)
-                self.entries[row, 2].insert(0, 8)
+                self.entries[row, 2].insert(0, 0)
             else:
-                self.entries[row, 9].insert(0, int(self.entries[row, 2].get()))
+                self.entries[row, 9].insert(0, 8)
+                self.entries[row, 2].delete(0, 10)
+                self.entries[row, 2].insert(0, 0)
 
         def f7():
             for col in range (2,10):
@@ -1378,8 +1376,10 @@ class Summary(LabelFrame):
 
         values = [0, 0, 0, 0, 0, 0, 0]
 
+        the_date = self.master.month.get_date()
+
         for col in range(2,10):      
-            for row in range(1,32):
+            for row in range(1, calendar.monthrange(year = the_date[1], month = the_date[0])[1]):
                 if col == 2:
 
                     s = self.master.input_table.entries[row, col].get()
@@ -1420,6 +1420,13 @@ class Summary(LabelFrame):
                         else:
                             delta = datetime.datetime.strptime(str(w), F1)
                             sum3 += datetime.timedelta(hours = delta.hour, minutes = delta.minute)
+
+                elif col == 9:
+                    if self.master.work_time.labels[row].cget("background") != "red":
+                        s = self.master.work_time.entries[row, col].get()
+                        if s != "":
+                            values[col-3] += int(self.master.work_time.entries[row, col].get())
+
                 else:
                     s = self.master.work_time.entries[row, col].get()
                     if s != "":
@@ -1524,13 +1531,13 @@ class Action_Buttons(LabelFrame):
 
         pdf.add_font("DejaVuSans", "", "DejaVuSans.ttf", uni=True)
         pdf.set_font("DejaVuSans", size=11)
-        pdf.set_left_margin(17)
+        pdf.set_left_margin(18)
 
         pdf.add_page()
 
         spacing = 1.2
         
-        data = [["", "Godz. pracy", "Czas pracy", "50%", "100%", "Noc", "Szko", "Inne", "Urlop", "Chor"]]
+        data = [["", "Godz. pracy", "Przepracowan czas", "50%", "100%", "Noc", "Szko", "Inne", "Urlop", "Chor"]]
         
         for row in range(1, calendar.monthrange(int(c_year), int(c_month))[1] + 1):
             del(x)
@@ -1544,8 +1551,8 @@ class Action_Buttons(LabelFrame):
 
         col0_width = 8
         col1_width = pdf.w / 8
-        col2_width = 22
-        col_width = 17
+        col2_width = 40
+        col_width = 14
 
         row_height = pdf.font_size + 1
         pdf.cell(0, 10, c_name, 0, 1, 'C')     
