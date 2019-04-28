@@ -2,7 +2,6 @@
 Ewidencja czasu pracy
 
 ## Start
-bla bla
 
 ### Instalacja
 Niezbędny do działania programu jest zainstalowany Python w wersji 3.x. 
@@ -34,8 +33,13 @@ Godziny nocne zostaną policzone automatycznie (od 22 do 6)
 
 ### Roczne podsumowanie
 
+Panel podsumowujący cały rok. Poniżej są dostępne dwa suwaki przy pomocy, których definiujemy zakres do obliczeń kolumny __Razem__. Dostępna jest opcja nawigacji między czasem pracy, a wykorzystanym urlopem.
+
 ![alt text](https://raw.githubusercontent.com/ciszko/ECP/master/Other/annualy_screen.PNG)
 
 ### Przykładowy raport PDF
+
+Po naciśnięciu przycisku __Drukuj__ otworzy się plik .pdf z wygenerowanym przez nas raportem.
+Wszystkie raporty znajdują się w folderze _Raporty_.
 
 ![alt text](https://raw.githubusercontent.com/ciszko/ECP/master/Other/pdf_example.PNG)
