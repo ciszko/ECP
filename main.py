@@ -248,7 +248,8 @@ class PageTwo(Frame):
                 i = 1
                 pdf.ln(row_height*spacing)
                 
-        pdf.output(self.title_str.get() + ' raport.pdf')
+        pdf_name = (self.title_str.get() + ' raport.pdf')
+        pdf.output(os.path.join(os.getcwd(), "Raporty", pdf_name))
 
         os.startfile(os.path.join(os.getcwd(), str(self.title_str.get() + " raport")) +  ".pdf")
 
