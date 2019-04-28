@@ -1038,7 +1038,6 @@ class Work_Time(LabelFrame):
             tdelta = str(tdelta).split(":")
             self.entries[row, 2].insert(0, tdelta[0] + ":" + tdelta[1])
 
-        #TODO: Ogarnac czy musi byc po 8h
         # "Szkolenie" insert
         def f3():
             for col in range (3,10):
@@ -1046,7 +1045,7 @@ class Work_Time(LabelFrame):
             if self.entries[row, 2].get() == "":
                 self.entries[row, 6].insert(0, 8)
             else:
-                self.entries[row, 6].insert(0, int(self.entries[row, 2].get()))
+                self.entries[row, 6].insert(0, 8)
 
         # "Inne" insert
         def f4():
@@ -1055,7 +1054,7 @@ class Work_Time(LabelFrame):
             if self.entries[row, 2].get() == "":
                 self.entries[row, 7].insert(0, 8)
             else:
-                self.entries[row, 7].insert(0, int(self.entries[row, 2].get()))
+                self.entries[row, 7].insert(0, 8)
 
         # "Urlop insert"
         def f5():
