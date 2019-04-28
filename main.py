@@ -847,6 +847,12 @@ class Work_Time(LabelFrame):
 
         self.controller = controller
 
+        self.night_start_value = "22:00"
+        self.night_stop_value = "6:00"
+
+        self.night_start = datetime.datetime.strptime(self.night_start_value, "%H:%M")
+        self.night_stop = datetime.datetime.strptime(self.night_stop_value, "%H:%M")
+
         self.t_height = 32
         self.t_width = 10
         self.entries ={}
@@ -906,19 +912,21 @@ class Work_Time(LabelFrame):
         # Entry text
         text = str(self.entries[row, 1].get())
 
+        # midnight
+        midnight = datetime.datetime.strptime("00:00", "%H:%M")
+
         zero_p = re.compile("0")                        # 0 input
         h_p = re.compile("\d+-\d(\d)?")                 # 7-15 hours pattern
         h2_p = re.compile("\d+:\d+-\d+:\d+")            # 7:30-15:15 hours pattern
         h3_p = re.compile("\d+:\d+-\d+")                # 7:30-15 hours pattern
         h4_p = re.compile("\d+-\d+:\d+")                # 7-15:15 hours pattern
-        n_p = re.compile("(?i)N")                       # night pattern
         s_p = re.compile("(?i)S")                       # training pattern
         i_p = re.compile("(?i)I")                       # other pattern
         u_p = re.compile("(?i)U")                       # vacation pattern
         c_p = re.compile("(?i)C")                       # sick pattern
         e_p = re.compile("")                            # empty pattern
 
-        #"0" input
+        # "0" input
         def f0():
             var = text
             for col in range(2,10):
@@ -928,10 +936,30 @@ class Work_Time(LabelFrame):
         # \d - \d insert
         def f1():
             var = text.split("-")
+            FRT = "%H"
+            # delete unneccessary columns
             for col in range (5,10):
                 self.entries[row, col].delete(0, 10)
             self.entries[row, 2].delete(0, 10)
-            self.entries[row, 2].insert(0,int(int(var[1])- int(var[0])))   
+            
+            end = datetime.datetime.strptime(var[1],FRT)
+            start = datetime.datetime.strptime(var[0], FRT)
+            tdelta = end - start
+            
+            if tdelta.days < 0:              
+                tdelta = (datetime.timedelta(days=0, seconds=tdelta.seconds))
+                max_n = midnight - max([self.night_start, start])
+
+                if max_n.days < 0:
+                    var1 = (datetime.timedelta(days=0, seconds=max_n.seconds))
+                    night_delta = (var1 + (min([self.night_stop, end]) - midnight))
+
+                night_delta = str(night_delta).split(":")             
+                self.entries[row, 5].insert(0, night_delta[0] + ":" + night_delta[1])
+            
+            tdelta = str(tdelta).split(":")        
+            self.entries[row, 2].insert(0, tdelta[0] + ":" + tdelta[1])
+            
 
         def f12():            
             var = text.split("-")
@@ -939,8 +967,24 @@ class Work_Time(LabelFrame):
             for col in range (5,10):
                 self.entries[row, col].delete(0, 10)
             self.entries[row, 2].delete(0,10)
-            tdelta = str((datetime.datetime.strptime(var[1],FRT)) - datetime.datetime.strptime(var[0], FRT)).split(":")
-            self.entries[row, 2].insert(0, tdelta[0]+ ":" + tdelta[1])
+
+            end = datetime.datetime.strptime(var[1],FRT)
+            start = datetime.datetime.strptime(var[0], FRT)
+            tdelta = end - start
+            
+            if tdelta.days < 0:              
+                tdelta = (datetime.timedelta(days=0, seconds=tdelta.seconds))
+                max_n = midnight - max([self.night_start, start])
+
+                if max_n.days < 0:
+                    var1 = (datetime.timedelta(days=0, seconds=max_n.seconds))
+                    night_delta = (var1 + (min([self.night_stop, end]) - midnight))
+
+                night_delta = str(night_delta).split(":")             
+                self.entries[row, 5].insert(0, night_delta[0] + ":" + night_delta[1])
+
+            tdelta = str(tdelta).split(":")
+            self.entries[row, 2].insert(0, tdelta[0] + ":" + tdelta[1])
 
         def f13():           
             var = text.split("-")
@@ -949,8 +993,24 @@ class Work_Time(LabelFrame):
             for col in range (5,10):
                 self.entries[row, col].delete(0, 10)
             self.entries[row, 2].delete(0,10)
-            tdelta = str((datetime.datetime.strptime(var[1],F2)) - datetime.datetime.strptime(var[0], F1)).split(":")
-            self.entries[row, 2].insert(0, tdelta[0]+ ":" + tdelta[1]) 
+
+            end = datetime.datetime.strptime(var[1],F2)
+            start = datetime.datetime.strptime(var[0], F1)
+            tdelta = end - start
+            
+            if tdelta.days < 0:              
+                tdelta = (datetime.timedelta(days=0, seconds=tdelta.seconds))
+                max_n = midnight - max([self.night_start, start])
+
+                if max_n.days < 0:
+                    var1 = (datetime.timedelta(days=0, seconds=max_n.seconds))
+                    night_delta = (var1 + (min([self.night_stop, end]) - midnight))
+
+                night_delta = str(night_delta).split(":")             
+                self.entries[row, 5].insert(0, night_delta[0] + ":" + night_delta[1])
+
+            tdelta = str(tdelta).split(":")
+            self.entries[row, 2].insert(0, tdelta[0] + ":" + tdelta[1])
 
         def f14():           
             var = text.split("-")
@@ -959,19 +1019,26 @@ class Work_Time(LabelFrame):
             for col in range (5,10):
                 self.entries[row, col].delete(0, 10)
             self.entries[row, 2].delete(0,10)
-            tdelta = str((datetime.datetime.strptime(var[1],F1)) - datetime.datetime.strptime(var[0], F2)).split(":")
-            self.entries[row, 2].insert(0, tdelta[0]+ ":" + tdelta[1])
-        
-        # "Noc" insert
-        def f2():
-            for col in range (3,10):
-                self.entries[row, col].delete(0, 10)       
-            if self.entries[row, 2].get() == "":
-                self.entries[row, 5].insert(0, 8)
-                self.entries[row, 2].insert(0, 8)
-            else:     
-                self.entries[row, 5].insert(0, int(self.entries[row, 2].get()))
 
+            end = datetime.datetime.strptime(var[1],F1)
+            start = datetime.datetime.strptime(var[0], F2)
+            tdelta = end - start
+            
+            if tdelta.days < 0:              
+                tdelta = (datetime.timedelta(days=0, seconds=tdelta.seconds))
+                max_n = midnight - max([self.night_start, start])
+
+                if max_n.days < 0:
+                    var1 = (datetime.timedelta(days=0, seconds=max_n.seconds))
+                    night_delta = (var1 + (min([self.night_stop, end]) - midnight))
+
+                night_delta = str(night_delta).split(":")             
+                self.entries[row, 5].insert(0, night_delta[0] + ":" + night_delta[1])
+                
+            tdelta = str(tdelta).split(":")
+            self.entries[row, 2].insert(0, tdelta[0] + ":" + tdelta[1])
+
+        #TODO: Ogarnac czy musi byc po 8h
         # "Szkolenie" insert
         def f3():
             for col in range (3,10):
@@ -1026,7 +1093,6 @@ class Work_Time(LabelFrame):
             (h2_p, f12),
             (h3_p, f13),
             (h_p, f1),
-            (n_p, f2),
             (s_p, f3),
             (i_p, f4),
             (u_p, f5),
@@ -1373,6 +1439,7 @@ class Summary(LabelFrame):
         sum1 = datetime.timedelta()
         sum2 = datetime.timedelta()
         sum3 = datetime.timedelta()
+        sum4 = datetime.timedelta()
 
         values = [0, 0, 0, 0, 0, 0, 0]
 
@@ -1421,6 +1488,18 @@ class Summary(LabelFrame):
                             delta = datetime.datetime.strptime(str(w), F1)
                             sum3 += datetime.timedelta(hours = delta.hour, minutes = delta.minute)
 
+                elif col == 5:
+
+                    w = self.master.work_time.entries[row, col].get()
+
+                    if w != "":
+                        if ":" in str(w):
+                            delta = datetime.datetime.strptime(str(w), F2)
+                            sum4 += datetime.timedelta(hours = delta.hour, minutes = delta.minute)
+                        else:
+                            delta = datetime.datetime.strptime(str(w), F1)
+                            sum4 += datetime.timedelta(hours = delta.hour, minutes = delta.minute)
+
                 elif col == 9:
                     if self.master.work_time.labels[row].cget("background") != "red":
                         s = self.master.work_time.entries[row, col].get()
@@ -1444,9 +1523,14 @@ class Summary(LabelFrame):
         m3 = int((sec3%3600) // 60)
         h3 = int(sec3 // 3600)
 
+        sec4 = sum4.total_seconds()
+        m4 = int((sec4%3600) // 60)
+        h4 = int(sec4 // 3600)
+
         x = str(str(h) + ":" + str(m).zfill(2))
         x2 = str(str(h2) + ":" + str(m2).zfill(2))
         x3 = str(str(h3) + ":" + str(m3).zfill(2))
+        x4 = str(str(h4) + ":" + str(m4).zfill(2))       
 
         self.w_hours_s.set((x))
         self.w_days_s.set((w_d))
@@ -1459,6 +1543,9 @@ class Summary(LabelFrame):
         self.sum_entries[3,1].delete(0, 10)
         self.sum_entries[3,1].insert(0, x3)
 
+        self.sum_entries[4,1].delete(0, 10)
+        self.sum_entries[4,1].insert(0, x4)       
+
         # Summaries
         self.sum_entries[1,1].delete(0, 10)
         self.sum_entries[1,1].insert(0, x)
@@ -1466,7 +1553,7 @@ class Summary(LabelFrame):
         self.sum_entries[1,2].delete(0, 10)
         self.sum_entries[1,2].insert(0, int(w_d))
 
-        for v in range(2,7):
+        for v in range(3,7):
             self.sum_entries[v+2, 1].delete(0, 10)
             self.sum_entries[v+2, 1].insert(0, values[v])
 
