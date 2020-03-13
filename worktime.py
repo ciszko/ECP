@@ -6,9 +6,9 @@ from tkinter import ttk
 import os
 
 # Calculation table
-class Work_Time(LabelFrame):
+class Work_Time(ttk.LabelFrame):
     def __init__(self, parent, controller, *args, **kwargs):
-        LabelFrame.__init__(self, parent, *args, **kwargs)
+        ttk.LabelFrame.__init__(self, parent, *args, **kwargs)
 
         self.controller = controller
 
@@ -36,7 +36,7 @@ class Work_Time(LabelFrame):
         # Headers for a table
         for title in range(len(self.title_labels_text)):
             self.title_labels.append(self.title_labels_text[title])
-            self.title_labels[title] = Label(self, text=self.title_labels_text[title])
+            self.title_labels[title] = ttk.Label(self, text=self.title_labels_text[title])
             self.title_labels[title].grid(row=0, column = counter+1)
             counter += 1
 
@@ -57,23 +57,28 @@ class Work_Time(LabelFrame):
                             f(*args, **kwargs)
                     return combined_func
                 if column == 1:
-                    self.entries[row, column] = Entry(self, width = 12)
+                    self.entries[row, column] = ttk.Entry(self, width = 12)
                     self.entries[row, column].bind("<Return>", combine_funcs(make_lambda(row), make_save(), focus_next_widget))
-                    self.entries[row, column].grid(row=row, column=column, pady = 1)
+                    self.entries[row, column].grid(row=row, column=column,)
                 elif column <= 4:
-                    self.entries[row, column] = Entry(self, width = 5, justify = "center")
+                    self.entries[row, column] = ttk.Entry(self, width = 5, justify = "center")
                     self.entries[row, column].bind("<Return>", combine_funcs(make_lambda(row), make_save(), focus_next_widget))
-                    self.entries[row, column].grid(row=row, column=column, pady = 1)         
+                    self.entries[row, column].grid(row=row, column=column)         
                 elif column == 10:
-                    self.entries[row, column] = Entry(self, width = 10, justify = "center")
+                    self.entries[row, column] = ttk.Entry(self, width = 10, justify = "center")
                     self.entries[row, column].bind("<Return>", combine_funcs(make_save(), focus_next_widget))
-                    self.entries[row, column].grid(row=row, column=column, pady = 1)                                             
+                    self.entries[row, column].grid(row=row, column=column)                                             
                 else:
-                    self.entries[row, column] = Entry(self, width = 5, justify = "center")
-                    self.entries[row, column].grid(row=row, column=column, pady = 1)
+                    self.entries[row, column] = ttk.Entry(self, width = 5, justify = "center")
+                    self.entries[row, column].grid(row=row, column=column)
 
+
+    def after_init(self):
         d_day = datetime.datetime(year = datetime.datetime.now().year, month = datetime.datetime.now().month, day = 1)
         self.make_month(d_day)
+
+        the_date = self.master.month.get_date()
+
 
     # Insert values in correct frames
     def calculate(self, row):
@@ -280,7 +285,7 @@ class Work_Time(LabelFrame):
             self.master.summary.sum_holiday()
         
     def calculate_all(self):
-        for i in range(1, 31):
+        for i in range(1, self.master.month.get_month_len()):
             self.calculate(i)
 
 
@@ -292,27 +297,47 @@ class Work_Time(LabelFrame):
 
         for en in self.entries:
             self.entries[en].delete(0, 10)
-        the_day = datetime.datetime.weekday(date)
 
-        # Look for a schedule file
-        if os.path.isfile("./Harmonogramy/" + str(date.year) + "/" + str(date.month) + ".txt"):
-            with open("./Harmonogramy/" + str(date.year) + "/" + str(date.month) + ".txt", "r") as f:
-                for day,line in enumerate(f, 1):
-                    line.strip()
-                    x = line.split(",") 
-                    if x[0] == "":
-                        self.labels[day] = Label(self, text = day)            
-                    else:
-                        self.labels[day] = Label(self, text = day, bg="red")
-                    self.labels[day].grid(row = day, column = 0)
+        # Copy the values from input_table
+        for row in range(1, calendar.monthrange(date.year, date.month)[1] + 1):
+            self.labels[row] = ttk.Label(self, text=self.master.input_table.labels[row]["text"])
+            self.labels[row].config(background=self.master.input_table.labels[row].cget("background"))
+            
+            self.labels[row].grid(row = row, column = 0)
 
-        # If schedule not found make a normal month
-        else:
-            for day in range(1, calendar.monthrange(date.year, date.month)[1] + 1):
-                if (the_day) == 5 or (the_day) == 6:
-                    self.labels[day] = Label(self, text=day, bg="red")
-                else:
-                    self.labels[day] = Label(self, text=day)               
-                self.labels[day].grid(row=day, column=0)
-                date += datetime.timedelta(days = 1)
-                the_day = datetime.datetime.weekday(date)
+        # if os.path.isfile("./Harmonogramy/" + str(date.year) + "/" + str(date.month) + ".txt"):
+        #     with open("./Harmonogramy/" + str(date.year) + "/" + str(date.month) + ".txt", "r") as f:
+        #         for day,line in enumerate(f, 1):
+        #             line.strip()
+        #             x = line.split(",") 
+        #             if x[0] == "":
+        #                 self.labels[day] = Label(self, text = day)            
+        #             else:
+        #                 self.labels[day] = Label(self, text = day, bg="red")
+        #             self.labels[day].grid(row = day, column = 0)
+
+        # # If schedule not found make a normal month
+        # else:
+        #     for day in range(1, calendar.monthrange(date.year, date.month)[1] + 1):
+        #         if (the_day) == 5 or (the_day) == 6:
+        #             self.labels[day] = Label(self, text=day, bg="red")
+        #         else:
+        #             self.labels[day] = Label(self, text=day)               
+        #         self.labels[day].grid(row=day, column=0)
+        #         date += datetime.timedelta(days = 1)
+        #         the_day = datetime.datetime.weekday(date)
+
+    def color_labels(self):
+        for l in self.labels:
+            self.labels[l].destroy()
+        del(self.labels)
+        self.labels = {} 
+
+        for en in self.entries:
+            self.entries[en].delete(0, 10)
+
+        # Copy the values from input_table
+        for row in range(1, calendar.monthrange(date.year, date.month)[1] + 1):
+            self.labels[row] = ttk.Label(self, text=self.master.input_table.labels[row]["text"])
+            self.labels[row].config(background=self.master.input_table.labels[row].cget("background"))         
+            self.labels[row].grid(row = row, column = 0)        

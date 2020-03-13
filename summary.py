@@ -1,11 +1,12 @@
 from tkinter import *
 import datetime
 import calendar
+import tkinter.messagebox
 
 # Summary of hours
-class Summary(LabelFrame):
+class Summary(ttk.LabelFrame):
     def __init__(self, parent, controller, *args, **kwargs):
-        LabelFrame.__init__(self, parent, *args, **kwargs)
+        ttk.LabelFrame.__init__(self, parent, *args, **kwargs)
 
         self.controller = controller
 
@@ -14,7 +15,8 @@ class Summary(LabelFrame):
         self.grid_columnconfigure(0, weight = 1)
 
         # Top frame
-        self.top_frame = LabelFrame(self, bd=2, relief = RIDGE, text="Harmonogram a wykonanie", fg = "blue")
+        self.top_frame = ttk.LabelFrame(self, borderwidth=2, relief = RIDGE, text="Harmonogram a wykonanie", labelanchor='nw')
+        
 
         for i in range(3):
             self.top_frame.grid_rowconfigure(i, weight = 1)
@@ -26,15 +28,15 @@ class Summary(LabelFrame):
         self.w_hours_s = StringVar()
         self.w_days_s = StringVar()
 
-        self.s_hours = Entry(self.top_frame, textvariable = self.s_hours_s, justify = "center", width = 10)
-        self.s_days = Entry(self.top_frame, textvariable = self.s_days_s, justify = "center", width = 10)
-        self.w_hours = Entry(self.top_frame, textvariable = self.w_hours_s, justify = "center", width = 10)
-        self.w_days = Entry(self.top_frame, textvariable = self.w_days_s, justify = "center", width = 10)
+        self.s_hours = ttk.Entry(self.top_frame, textvariable = self.s_hours_s, justify = "center", width = 10)
+        self.s_days = ttk.Entry(self.top_frame, textvariable = self.s_days_s, justify = "center", width = 10)
+        self.w_hours = ttk.Entry(self.top_frame, textvariable = self.w_hours_s, justify = "center", width = 10)
+        self.w_days = ttk.Entry(self.top_frame, textvariable = self.w_days_s, justify = "center", width = 10)
 
-        self.days_label = Label(self.top_frame, text="Dni")
-        self.hours_label = Label(self.top_frame, text="Godz")
-        self.s_label = Label(self.top_frame, text="Harmonogram")
-        self.w_label = Label(self.top_frame, text="Wykonanie")
+        self.days_label = ttk.Label(self.top_frame, text="Dni")
+        self.hours_label = ttk.Label(self.top_frame, text="Godz")
+        self.s_label = ttk.Label(self.top_frame, text="Harmonogram")
+        self.w_label = ttk.Label(self.top_frame, text="Wykonanie")
         
         self.days_label.grid(row = 1, column = 0)
         self.hours_label.grid(row = 2, column = 0)
@@ -49,7 +51,7 @@ class Summary(LabelFrame):
         self.top_frame.grid(row=0, sticky = NSEW)
 
         # Middle Frame
-        self.mid_frame = LabelFrame(self, bd = 2, relief = RIDGE, text = "Podsumowanie", fg = "blue")
+        self.mid_frame = ttk.LabelFrame(self, borderwidth = 2, relief = RIDGE, text = "Podsumowanie")
 
         for i in range(9):
             self.mid_frame.grid_rowconfigure(i, weight = 1)
@@ -64,22 +66,22 @@ class Summary(LabelFrame):
         for col in range(3):
             for row in range(9):
                 if col == 0 and row > 0:
-                    self.m_labels[row, col] = Label(self.mid_frame, text = self.m_labels_s[row+1])
+                    self.m_labels[row, col] = ttk.Label(self.mid_frame, text = self.m_labels_s[row+1])
                     self.m_labels[row, col].grid(row = row, column = col)
 
                 if col == 1:
                     if row == 0:
-                        self.m_labels[row, col] = Label(self.mid_frame, text = self.m_labels_s[0])
+                        self.m_labels[row, col] = ttk.Label(self.mid_frame, text = self.m_labels_s[0])
                         self.m_labels[row, col].grid(row = row, column = col)
                     else:
-                        self.sum_entries[row, col] = Entry(self.mid_frame, width = 10, justify = "center")
+                        self.sum_entries[row, col] = ttk.Entry(self.mid_frame, width = 10, justify = "center")
                         self.sum_entries[row, col].grid(row = row, column = col, padx = 10)
                 if col == 2:
                     if row == 0:
-                        self.m_labels[row, col] = Label(self.mid_frame, text = self.m_labels_s[1])
+                        self.m_labels[row, col] = ttk.Label(self.mid_frame, text = self.m_labels_s[1])
                         self.m_labels[row, col].grid(row = row, column = col)
                     elif row == 1 or row == 7 or row == 8:
-                        self.sum_entries[row, col] = Entry(self.mid_frame, width = 10, justify = "center")
+                        self.sum_entries[row, col] = ttk.Entry(self.mid_frame, width = 10, justify = "center")
                         self.sum_entries[row, col].grid(row = row, column = col, padx = 10)
 
 
@@ -88,45 +90,55 @@ class Summary(LabelFrame):
         
         #bottom frame
 
-        self.bot_frame = LabelFrame(self, text = "Urlop", bd = 2, relief = RIDGE, fg = "blue")
+        self.bot_frame = ttk.LabelFrame(self, text = "Urlop", borderwidth = 2, relief = RIDGE)
 
         for i in range(5):
             self.bot_frame.grid_rowconfigure(i, weight = 1)
         for i in range(3):
             self.bot_frame.grid_columnconfigure(i, weight = 1)
 
-        self.in_month = Label(self.bot_frame, text = "W miesiącu")   
-        self.in_year = Label(self.bot_frame, text = "W roku")      
-        self.back_l = Label(self.bot_frame, text = "Zaległy:")      
-        self.back_1_l = Label(self.bot_frame, text = datetime.datetime.now().year - 1)     
-        self.back_2_l = Label(self.bot_frame, text =datetime.datetime.now().year - 2)       
-        self.used_leave_l = Label(self.bot_frame, text = "Wykorzystany:")   
-        self.used_leave_m = Entry(self.bot_frame, width = 7, justify = "center")      
-        self.used_leave_y = Entry(self.bot_frame, width = 7, justify = "center")        
-        self.back_1 = Entry(self.bot_frame, width = 7, justify = "center")       
-        self.back_2 = Entry(self.bot_frame, width = 7, justify = "center")
-        self.total_l = Label(self.bot_frame, text = "Pozostały:")
-        self.total = Entry(self.bot_frame, width = 7, justify = "center")
+        self.in_month = ttk.Label(self.bot_frame, text = "W miesiącu")   
+        self.in_year = ttk.Label(self.bot_frame, text = "W roku")      
+        self.back_0_s = StringVar()
+        self.back_1_s = StringVar()
+        self.back_2_s = StringVar()
+        self.back_0_s.set(str(datetime.datetime.now().year - 0))
+        self.back_1_s.set(str(datetime.datetime.now().year - 1))
+        self.back_2_s.set(str(datetime.datetime.now().year - 2))
+        self.back_0_l = ttk.Label(self.bot_frame, textvariable = self.back_0_s)      
+        self.back_1_l = ttk.Label(self.bot_frame, textvariable = self.back_1_s)     
+        self.back_2_l = ttk.Label(self.bot_frame, textvariable = self.back_2_s)       
+        self.used_leave_l = ttk.Label(self.bot_frame, text = "Wykorzystany:")   
+        self.used_leave_m = ttk.Entry(self.bot_frame, width = 7, justify = "center")      
+        self.used_leave_y = ttk.Entry(self.bot_frame, width = 7, justify = "center")  
+        self.back_0 = ttk.Entry(self.bot_frame, width = 7, justify = "center")      
+        self.back_1 = ttk.Entry(self.bot_frame, width = 7, justify = "center")       
+        self.back_2 = ttk.Entry(self.bot_frame, width = 7, justify = "center")
+        self.total_l = ttk.Label(self.bot_frame, text = "Pozostały:")
+        self.total = ttk.Entry(self.bot_frame, width = 7, justify = "center")
 
         self.in_month.grid(row = 0, column = 1)
         self.in_year.grid(row = 0, column = 2)
-        self.back_l.grid(row = 3, column = 0, sticky = E)
+        self.back_0_l.grid(row = 2, column = 0, sticky = S)
         self.back_1_l.grid(row = 2, column = 1, sticky = S)
         self.back_2_l.grid(row = 2, column = 2, sticky = S)
         self.used_leave_l.grid(row = 1, column = 0, sticky = E)
         self.used_leave_l.grid(row = 1, column = 0)
         self.used_leave_m.grid(row = 1, column = 1, padx = 10)
         self.used_leave_y.grid(row = 1, column = 2, padx =10)
+        self.back_0.grid(row=3, column = 0, padx = 10)
         self.back_1.grid(row = 3, column = 1, padx =10)
         self.back_2.grid(row = 3, column = 2, padx =10)
         self.total_l.grid(row = 4, column = 0, sticky = E)
-        self.total.grid(row = 4, column = 1, columnspan = 3, pady = 10)
+        self.total.grid(row = 4, column = 1, pady = 10)
 
 
         self.bot_frame.grid(row = 2, sticky = NSEW)
 
+    def after_init(self):
         self.sum_hours()
 
+    # summing hours for every employee
     def sum_hours(self):
         w_d = 0
 
@@ -140,12 +152,13 @@ class Summary(LabelFrame):
         sum3 = datetime.timedelta()
         sum4 = datetime.timedelta()
 
+        # values for worked time, holiday...
         values = [0, 0, 0, 0, 0, 0, 0]
 
-        the_date = self.master.month.get_date()
+        month_len = self.master.month.get_month_len()
 
         for col in range(2,10):      
-            for row in range(1, calendar.monthrange(year = the_date[1], month = the_date[0])[1] + 1):
+            for row in range(1, month_len):
                 if col == 2:
 
                     s = self.master.input_table.entries[row, col].get()
@@ -265,13 +278,15 @@ class Summary(LabelFrame):
         self.sum_entries[8, 2].delete(0,10)
         self.sum_entries[8, 2].insert(0, int(values[6]/8))
 
-        # Holiday
-
-        self.total.delete(0, 10)
-
     def sum_holiday(self):
         
-        total = 0
-        total = int(self.master.employee.hol_days) + int(self.back_1.get()) + int(self.back_2.get()) - int(self.used_leave_y.get())
-        self.total.delete(0, 10)
-        self.total.insert(0, total)
+        try:
+            total = int(self.master.employee.hol_days) + int(self.back_1.get()) + int(self.back_2.get()) - int(self.used_leave_y.get())
+            
+            self.total.delete(0, END)
+            self.total.insert(0, total)
+            self.back_0.delete(0, END)
+            self.back_0.insert(0, self.master.employee.hol_days)
+        except Exception as e:
+            self.controller.set_status("Coś poszło nie tak, spróbuj cofnąć miesiąc i ponownie wczytaj ten miesiąc")
+            messagebox.showerror("Błąd", e)

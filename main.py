@@ -2,11 +2,11 @@ from tkinter import *
 import tkinter.messagebox
 from tkinter import simpledialog
 from tkinter import ttk
+from ttkwidgets import TickScale
 import calendar
 import datetime
 import re
 import os.path
-import io
 from fpdf import FPDF
 from worktime       import *
 from inputtable     import *
@@ -14,106 +14,165 @@ from summary        import *
 from monthdisplay   import *
 from employee       import *
 from menu           import *
-from data_convert   import *
 
 class App(Tk):
     def __init__(self, *kwargs, **args):
         Tk.__init__(self)
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TLabelframe', labelanchor='n')
+        self.bg = style.lookup('TFrame', 'background')
+        kasia = 'fajna'
 
         self.option_add("*Font", "Arial 8")                     # default font 
-        self.iconbitmap(r"./data/ecp.ico")                      # window icon
-        self.menu = My_Menu(self, self)
-        self.config(menu = self.menu)
+        self.iconbitmap(r"./data/ikonka.ico")                      # window icon
+        self.menu = My_Menu(self, controller=self, background = self.bg)
+        self.config(background = self.bg, menu = self.menu)
         self.protocol("WM_DELETE_WINDOW", self.on_exit)
-        self.grid_propagate(False)
+        self.grid_propagate(True)
         self.title("Ewidencja czasu pracy")
 
-        container = Frame(self)
-        container.pack(side="top", fill="both", expand=True)
+
+
+        container = ttk.Frame(self)
+        container.grid(row=0, column = 0, sticky=NSEW)
+        #container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1, weight=1)
         container.grid_columnconfigure(0, weight=1)
         
         self.frames = {}
+
+        # initiate status bar
+        self.status_text = StringVar()
+        self.status_text.set("Działam :)")
+        self.status = ttk.Label(self, textvariable=self.status_text, anchor=W, relief=SUNKEN)
+        self.status.grid(row=1, column=0, sticky=EW)
+        #self.status.pack(fill=X, side="bottom")
 
         for F in (Em_App, PageTwo):
             page_name = F.__name__
             frame = F(parent=container, controller = self)
             self.frames[page_name] = frame 
-            frame.grid(row=0, column=0, sticky="nsew")
+            frame.grid(row=0, column=0, sticky=NSEW)
+            frame.grid_rowconfigure(0, weight=1)
+            frame.grid_columnconfigure(0, weight=1)
 
         self.show_frame("Em_App")
+        # Gets the requested values of the height and widht.
+        windowWidth = self.winfo_reqwidth()
+        windowHeight = self.winfo_reqheight()
+        
+        # Gets both half the screen width/height and window width/height
+        positionRight = int(self.winfo_screenwidth()/2 - windowWidth/2)
+        positionDown = int(self.winfo_screenheight()/2 - windowHeight/2)
+        
+        # Positions the window in the center of the page.
+        self.geometry("+{}+{}".format(positionRight, positionDown))
 
+        self.set_status("Wszystko wczytane poprawnie")
+
+    # Show a frame for the given page name
     def show_frame(self, page_name):
-        '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         frame.tkraise()
 
+    # when exiting an app
     def on_exit(self):
         if tkinter.messagebox.askyesno("Zakończ pracę", "Czy na pewno chcesz wyjść? \n \t   :("):
             self.destroy()
 
+    # get page for a reference
     def get_page(self, page_class):
         return self.frames[page_class]
 
-class DoubleSlider(Frame):
-    def __init__(self, parent, controller):
-        Frame.__init__(self, parent)
-        self.controller = controller
-        self.job = None
+    # set text on status bar
+    def set_status(self, message):
+        self.status_text.set(message)
 
-        self.top_slider = Scale(self, from_= 1, to = 12, orient=HORIZONTAL, length = 200, tickinterval = 1)
-        self.top_slider.grid(row = 0, column = 0)
+
+class Limiter(ttk.Scale):
+    """ ttk.Scale sublass that limits the precision of values. """
+
+    def __init__(self, *args, **kwargs):
+        self.precision = kwargs.pop('precision')  # Remove non-std kwarg.
+        self.chain = kwargs.pop('command', lambda *a: None)  # Save if present.
+        super(Limiter, self).__init__(*args, command=self._value_changed, **kwargs)
+
+    def _value_changed(self, newvalue):
+        newvalue = round(float(newvalue), self.precision)
+        self.winfo_toplevel().globalsetvar(self.cget('variable'), (newvalue))
+        self.chain(newvalue)  # Call user specified function.
+
+class DoubleSlider(ttk.Frame):
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        #style
+        style = ttk.Style()
+        style.configure('Double.Horizontal.TScale', sliderlenght=30)
+
+        self.top_slider = TickScale(self, style='Double.Horizontal.TScale', tickinterval=1, resolution=1, from_=1, to=12, length=400, labelpos='s', command=self.update_value)
+        self.top_slider.grid(row = 0, column = 0, sticky=S)
         self.top_slider.set(12)
         self.top_slider.bind("<ButtonRelease-1>", self.update_value)
 
-        self.bot_slider = Scale(self, from_= 1, to = 12, orient=HORIZONTAL, length = 200)
-        self.bot_slider.grid(row = 1, column = 0)
-        self.bot_slider.bind("<ButtonRelease-1>", self.update_value)
+        self.bot_slider = TickScale(self, style='Double.Horizontal.TScale', tickinterval=1, resolution=1, from_=1, to=12, length=400, labelpos='n', command=self.update_value)
+        self.bot_slider.grid(row = 1, column = 0, sticky=N)
 
 
     def reset(self):
         self.top_slider.set(12)
         self.bot_slider.set(1)
-        self.update_value(None)
+        #self.update_value(None)
 
     def update_value(self, event):
+        try:
+            entries_len = len(self.master.entries)//14
+            total = [0] * (entries_len)
 
-        entries_len = len(self.master.entries)//14
-        total = [0] * (entries_len + 1)
+            if self.top_slider.get() <= self.bot_slider.get():
+                smaller_slider = int(self.top_slider.get())
+                bigger_slider = int(self.bot_slider.get())
+            else:
+                smaller_slider = int(self.bot_slider.get())
+                bigger_slider = int(self.top_slider.get())
 
-        if self.top_slider.get() <= self.bot_slider.get():
-            smaller_slider = self.top_slider.get()
-            bigger_slider = self.bot_slider.get()
-        else:
-            smaller_slider = self.bot_slider.get()
-            bigger_slider = self.top_slider.get()
+            for i in range(1,13):
+                self.master.labels[i].configure(foreground = "black")
+    
+            for i in range(smaller_slider, bigger_slider + 2):
+                
+                if i < bigger_slider + 1 and i >= smaller_slider:
+                    self.master.labels[i].configure(foreground = "#0099ff")
 
-        for i in range(1,13):
-            self.master.labels[i].configure(fg = "black")
+                if i > smaller_slider:
+                    for j in range(1, entries_len+1):
+                        entry = self.master.entries[i, j].get()
+                        if ":" in entry:
+                            delta = int(entry.split(":")[0]) * 3600 + int(entry.split(":")[1]) * 60
+                            total[j-1] += delta
+                        else:
+                            total[j-1] += int(entry) * 3600
+                
 
-        
-        
-        for i in range(smaller_slider, bigger_slider + 2):
-            
-            if i < bigger_slider + 1 and i >= smaller_slider:
-                self.master.labels[i].configure(fg = "#0099ff")
+            for i in range(1, entries_len+1):
+                self.master.entries[14, i].delete(0, 10)
+                self.master.entries[14, i].insert(0, str(int((total[i-1] // 3600))) + ":" + str(int(total[i-1]%3600)// 60).zfill(2))
+        except AttributeError:
+            pass
 
-            if i > smaller_slider:
-                for j in range(1, entries_len+1):
-                    entry = self.master.entries[i, j].get()
-                    if ":" in entry:
-                        delta = int(entry.split(":")[0]) * 3600 + int(entry.split(":")[1]) * 60
-                        total[j] += delta
-            
+    # returns the range of sliders e.g (2,7)
+    def get_range(self):
+        less = min(int(self.top_slider.get()), int(self.bot_slider.get()))
+        more = max(int(self.top_slider.get()), int(self.bot_slider.get()))
+        return((less, more))
 
-        for i in range(1, entries_len+1):
-            self.master.entries[14, i].delete(0, 10)
-            self.master.entries[14, i].insert(0, str(int((total[i] // 3600))) + ":" + str(int(total[i]%3600)// 60).zfill(2))
-
-class PageTwo(Frame):
+class PageTwo(ttk.Frame):
 
     def __init__(self, parent, controller):
-        Frame.__init__(self, parent)
+        ttk.Frame.__init__(self, parent)
         self.controller = controller
         self.entries = {}
         self.labels = {}
@@ -123,58 +182,64 @@ class PageTwo(Frame):
 
         self.headers_s = ("Pracownik", "STY", "LUT", "MAR", "KWI", "MAJ", "CZE", "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem", "Pozostało")
         self.change_str = StringVar()
-        self.change_str.set("Godz. pracy")
+        self.change_str.set("Urlop")
         self.title_str = StringVar()
-        self.title_str.set("URLOP")
+        self.title_str.set("Godz. pracy")
 
-        self.title = Label(self, textvariable = self.title_str, width = 20, font = "Arial 8 bold")
-        self.title.grid(row = 0, column = 3)
+        self.title = ttk.Label(self, textvariable = self.title_str, width = 20, font = "Arial 8 bold", justify="center")
+        self.title.grid(row = 0, column = 0, sticky=NS, columnspan=6)
 
-        self.table_frame = Frame(self, borderwidth = 3, relief = RIDGE)
-        self.table_frame.grid(row = 1, column=1, columnspan = 6)
+        self.table_frame = ttk.Frame(self, borderwidth = 3, relief = RIDGE)
+        self.table_frame.grid(row = 1, column=0, columnspan =6 , sticky=N)
 
         for i in range(7):
             self.grid_columnconfigure(i, weight = 1)
+            self.grid_rowconfigure(i, weight=1)
 
         def go_back():
             self.controller.show_frame("Em_App")
             
 
-        self.back = Button(self, text="Powrót", width=15, cursor = "sb_left_arrow", command= go_back)
-        self.back.grid(row = 4, column = 1)
+        self.back = ttk.Button(self, text="Powrót", width=15, cursor = "sb_left_arrow", command= go_back)
+        self.back.grid(row = 2, column = 1, sticky=N)
 
-        self.change = Button(self, textvariable = self.change_str, command = self.change, width = 15, cursor = "exchange")
-        self.change.grid(row = 4 , column = 3)
+        self.change = ttk.Button(self, textvariable = self.change_str, command = self.change, width = 15, cursor = "exchange")
+        self.change.grid(row = 2 , column = 3, sticky=N)
 
-        self.print_butt = Button(self, text = "Drukuj", command = self.to_print, width = 15)
-        self.print_butt.grid(row = 4, column = 5)
+        self.print_butt = ttk.Button(self, text = "Drukuj", command = self.to_print, width = 15)
+        self.print_butt.grid(row = 2, column = 5, sticky=N)
 
         for m in range(14 + self.offset):
-            Label(self.table_frame, text = self.headers_s[m], justify = "center", anchor = "c").grid(row = 0, column = m+1)
+            self.labels[m] = ttk.Label(self.table_frame, text = self.headers_s[m], justify = "center", anchor = "c")
+            self.labels[m].grid(row = 0, column = m+1)  
 
         self.slider = DoubleSlider(self, controller)
-        self.slider.grid(row = 30, column = 3)
+        self.slider.grid(row = 3, column=3, sticky=W)
 
         self.on_init()     
 
         
-
+    # buttons to change working_hours/holiday
     def change(self):
         if self.change_str.get() == "Godz. pracy":
             self.change_str.set("Urlop")
-            self.on_init("holiday")
+            self.on_init("work")
             self.title_str.set("GODZINY PRACY")
         elif self.change_str.get() == "Urlop":
             self.change_str.set("Godz. pracy")
-            self.on_init("work")
+            self.on_init("holiday")
             self.title_str.set("URLOP")
 
+    # make a pdf file
     def to_print(self):
 
         x = []
         pdf = FPDF('L', 'mm', 'A4')
 
-        pdf.add_font("DejaVuSans", "", "DejaVuSans.ttf", uni=True)
+        try:
+            pdf.add_font("./data/DejaVuSans", "", "DejaVuSans.ttf", uni=True)
+        except Exception as e:
+            messagebox.showerror("Błąd", e)
         pdf.set_font("DejaVuSans", size=11)
         
         pdf.add_page()
@@ -198,8 +263,9 @@ class PageTwo(Frame):
             row_height = pdf.font_size + 1
             pdf.cell(0, 10, 'Wykorzystany urlop', 0, 1, 'C')
 
-            rn = 0
-            ir = 0
+            rn = 0  # row number
+            ir = 0  # item in row
+
             for row in data:
                 for item in row:
                     if rn == 0:
@@ -224,13 +290,23 @@ class PageTwo(Frame):
                   
         elif self.offset == 0:
 
+            # make a range of numbers between sliders + 0,13 
+            slider_range = self.slider.get_range()
+            applicable_range = [0]
+            applicable_range.extend(list(range(slider_range[0], slider_range[1] + 1)))
+            applicable_range.append(13)
+            
+            # column headers
             data = [["Imię i nazwisko", "STY", "LUT", "MAR", "KWI", "MAJ", "CZE", "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem"]]
 
             for row in range(1, int(len(self.entries)/14 + 1)):
                 del(x)
                 x= []
                 for col in range(1, 15):
-                    x.append(self.entries[col, row].get())
+                    if col-1 not in applicable_range:
+                        x.append('X')
+                    else:
+                        x.append(self.entries[col, row].get())
                 data.append(x)
 
             col1_width = pdf.w / 6
@@ -255,22 +331,28 @@ class PageTwo(Frame):
                 
         pdf_name = (self.title_str.get() + ' raport.pdf')
         pdf.output(os.path.join(os.getcwd(), "Raporty", pdf_name))
-
-        os.startfile(os.path.join(os.getcwd(), str(self.title_str.get() + " raport")) +  ".pdf")
+        
+        os.startfile(os.path.join(os.getcwd(), "Raporty", str(self.title_str.get() + " raport")) +  ".pdf")
 
 
     def on_init(self, type = "work"):
 
         if type == "work":
-            self.offset = 1
-        if type == "holiday":
             self.offset = 0
+            self.change_str.set("Urlop")
+            self.title_str.set("Godz. pracy")
+        if type == "holiday":
+            self.offset = 1
+            self.change_str.set("Godz. pracy")
+            self.title_str.set("Urlop")
+
+        
         
         for l in self.labels:
             self.labels[l].destroy()
 
         for m in range(14 + self.offset):
-            self.labels[m] = Label(self.table_frame, text = self.headers_s[m], justify = "center", anchor = "c")
+            self.labels[m] = ttk.Label(self.table_frame, text = self.headers_s[m], justify = "center", anchor = "c")
             self.labels[m].grid(row = 0, column = m+1)
 
         for en in self.entries:
@@ -280,75 +362,106 @@ class PageTwo(Frame):
 
         page = self.controller.get_page("Em_App")
 
-        # make a table
-        with io.open("./Roczne podsumowanie/" + str(page.month.selected_year.get()) + ".txt", "r", encoding='utf-8-sig') as f:
-            data = sorted(f.readlines())
-            
-        i = 1
+        # check if the file exists, if not then make one
+        current_year = page.month.selected_year.get()
+        if not os.path.isfile('./Roczne podsumowanie/' + str(current_year) + ".json"):
+            # create a new dict 
+            summary = {
+                "employees" : {}
+            }
+            names = []
+            # iterate over employees
+            for file in sorted(os.listdir("./Pracownicy")):
+                names.append(str(file))
 
-        for line in data:
+            for name in names:
+                    summary["employees"][name] = {
+                        "work" : 12 * [0],
+                        "holiday" : 12 * [0],
+                        "yearly_holiday" : 0,
+                        str("holiday_left_" + str(current_year - 1)) : 0,
+                        str("holiday_left_" + str(current_year - 2)) : 0,
+                    }
+            with open('./Roczne Podsumowanie/' + str(current_year) + ".json", 'w') as to_save:
+                json.dump(summary, to_save, indent=4, ensure_ascii=False)
+
+
+        with open('./Roczne podsumowanie/' + str(current_year) + ".json", "r") as f1:
+            x = json.load(f1)
+
+        row = 1
+        # iterate over employees
+        for empl in sorted(x["employees"]) :
+            if self.controller.menu.show_all.get() is True:
+                pass
+            else:
+                if str(empl).startswith("_"):
+                    continue
+            # employees names
             sum1 = 0
-            x = line.strip().split(",")
+            self.entries[1, row] = Entry(self.table_frame, width = 16)
+            self.entries[1, row].grid(row = row, column = 1, padx = 4, pady = 1)
+            if str(empl).startswith("_"):
+                self.entries[1, row].insert(0, str(empl).replace("_", "[Z]"))
+            else:
+                 self.entries[1, row].insert(0, str(empl))
+            #iterate over records
+            for col, month in enumerate(x["employees"][empl][type], 2):
+                self.entries[col, row] = Entry(self.table_frame, width = 6, justify = "center")
+                self.entries[col, row].insert(0, month)
+                self.entries[col, row].grid(row = row, column = col, padx = 2, pady = 1)
+                # if type is work calculate sum of hours
+                if type == "work":
+                    if isinstance(month, str):
+                        delta = int(month.split(":")[0]) * 3600 + int(month.split(":")[1]) * 60
+                        sum1 += delta
+                elif type == "holiday":                       
+                    sum1 += int(month)
+            # add sum entries
+            self.entries[14, row] = Entry(self.table_frame, width = 7, justify = "center")
+            self.entries[14, row].grid(row = row, column =14, padx = 1, pady = 1)
+            # when calculating holiday, add additional column with summary
+            # calculated based on employees holidays from current and -2 previous years
+            if type == "holiday":
+                self.entries[14, row].insert(0, sum1)
+                self.entries[15, row] = Entry(self.table_frame, width = 7, justify = "center")
+                self.entries[15, row].grid(row = row, column = 15, padx = 1, pady = 1)
+                left = int(x["employees"][empl]["yearly_holiday"]) - sum1 + int(x["employees"][empl][str("holiday_left_" + str(current_year-1))]) + int(x["employees"][empl][str("holiday_left_" + str(current_year-2))])
+                self.entries[15, row].insert(0, left)
+            elif type == "work":
+                m = int((sum1%3600) // 60)
+                h = int(sum1 // 3600) 
+                self.entries[14, row].insert(0, str(str(h) + ":" + str(m).zfill(2)))  
+            row += 1
 
-            if x != "" or x != "\n":
-                for col in range(1,15 + self.offset):
-                    if col == 1:
-                        self.entries[col, i] = Entry(self.table_frame, width = 16)
-                        self.entries[col, i].grid(row = i, column = col, padx = 4, pady = 1)
-                        self.entries[col, i].insert(0, x[0])
-                    elif col < 14:
-                        y = x[col-1].split(".")[self.offset]
-                        if y != "0" and self.offset == 1:
-                            self.entries[col, i] = Entry(self.table_frame, width = 6, justify = "center", fg = "red")
-                        else:
-                            self.entries[col, i] = Entry(self.table_frame, width = 6, justify = "center")
-                        self.entries[col, i].grid(row = i, column = col, padx = 2, pady = 1)
-                        self.entries[col, i].insert(0, y)
-                        
-                        if self.offset == 1:
-                            sum1 += int(y)
-                        else:
-                            if ":" in str(y):
-                                delta = int(y.split(":")[0]) * 3600 + int(y.split(":")[1]) * 60
-                                sum1 += delta
-                    elif col == 14:
-                        self.entries[col, i] = Entry(self.table_frame, width = 7, justify = "center")
-                        self.entries[col, i].grid(row = i, column = col, padx = 1, pady = 1)
-                        if self.offset == 1:
-                            self.entries[col, i].insert(0, sum1)
-                        else:
-                            m = int((sum1%3600) // 60)
-                            h = int(sum1 // 3600) 
-                            self.entries[col, i].insert(0, str(str(h) + ":" + str(m).zfill(2)))   
-                    elif self.offset == 1:
-                        self.entries[col, i] = Entry(self.table_frame, width = 7, justify = "center")
-                        self.entries[col, i].grid(row = i, column = col, padx = 1, pady = 1)
-                        self.entries[col, i].insert(0, x[13])
-            i += 1
+        self.controller.set_status("Wczytano Roczne podsumowanie")
 
-        if type == "holiday":
+        # add a sdouble slider when neccessary
+        if type == "work":
             self.slider.grid(row = 30, column = 3)
             self.slider.reset()
-        if type == "work":
+        if type == "holiday":
             self.slider.grid_remove()
+   
 
-class Em_App(Frame):
+class Em_App(ttk.Frame):
 
     def __init__(self, parent, controller, *args, **kwargs):
-        Frame.__init__(self, parent, *args, **kwargs)
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.grid()
         
         self.loaded = False
+
         # Widgets
         
         self.controller = controller
 
-        self.input_table = Input_Table(self, controller, borderwidth = 3, relief = RIDGE, text = "HARMONOGRAM", labelanchor = 'n', font = "Arial 8 bold")       
-        self.month = Month_Display(self, controller, borderwidth = 3, relief = RIDGE, text = "Data", labelanchor = 'n', font = "Arial 8 bold")
-        self.employee = Employee(self, controller, borderwidth = 3, relief = RIDGE, text = "Pracownik", labelanchor = 'n', font = "Arial 8 bold")
-        self.work_time = Work_Time(self, controller, borderwidth = 3, relief = RIDGE, text = " WYKONANIE", labelanchor = 'n', font = "Arial 8 bold")
-        self.summary = Summary(self, controller, borderwidth = 3, relief = RIDGE, text = "PODSUMOWANIE", labelanchor = 'n', font = "Arial 8 bold")
-        self.action_buttons = Action_Buttons(self, controller, borderwidth = 3, relief = RIDGE, text = "OPCJE", labelanchor = 'n', font = "Arial 8 bold")
+        self.input_table = Input_Table(self, controller, borderwidth = 3, relief = RIDGE, text = "HARMONOGRAM", labelanchor=N)       
+        self.month = Month_Display(self, controller, borderwidth = 3, relief = RIDGE, text = "Data", labelanchor='n', style='my.TLabelframe')
+        self.employee = Employee(self, controller, borderwidth = 3, relief = RIDGE, text = "Pracownik",labelanchor='n', style='my.TLabelframe')
+        self.work_time = Work_Time(self, controller, borderwidth = 3, relief = RIDGE, text = " WYKONANIE", labelanchor='n',style='my.TLabelframe')
+        self.summary = Summary(self, controller, borderwidth = 3, relief = RIDGE, text = "PODSUMOWANIE", labelanchor='n', style='my.TLabelframe')
+        self.action_buttons = Action_Buttons(self, controller, borderwidth = 3, relief = RIDGE, text = "OPCJE", labelanchor='n', style='my.TLabelframe')
         
 
         # Frame positioning 
@@ -367,19 +480,21 @@ class Em_App(Frame):
         self.grid_rowconfigure(2,weight=1)
         self.grid_rowconfigure(3,weight=1)
                 
+        # functions to call after the init
+        self.input_table.after_init()
+        self.work_time.after_init()
+        self.summary.after_init()        
         
         self.employee.read_data()
-        self.work_time.calculate_all()
+        # self.work_time.calculate_all()
         self.summary.sum_hours()
-        self.summary.sum_holiday()
-
-        self.loaded = True
+        # self.summary.sum_holiday()
 
 
 #Save and next frame buttons
-class Action_Buttons(LabelFrame):
+class Action_Buttons(ttk.LabelFrame):
     def __init__(self, parent, controller, *args, **kwargs):
-        LabelFrame.__init__(self, parent, *args, **kwargs)
+        ttk.LabelFrame.__init__(self, parent, *args, **kwargs)
 
         self.controller = controller
 
@@ -387,22 +502,25 @@ class Action_Buttons(LabelFrame):
         self.grid_columnconfigure(1, weight = 1)
         self.grid_rowconfigure(0, weight = 1)
 
-        self.save_but = Button(self, text = "Zapisz", command = self.save)
-        self.next_frame_but = Button(self, text = "Roczne podsumowanie", cursor = "sb_right_arrow", command = self.change)
-        self.print_but = Button(self, text = "Drukuj", command = self.to_pdf)
+        self.reload_but = ttk.Button(self, text = "Odśwież", command = self.reload, width=8)
+        self.next_frame_but = ttk.Button(self, text = "Roczne podsumowanie", cursor = "sb_right_arrow", command = self.change)
+        self.print_but = ttk.Button(self, text = "Drukuj", command = self.to_pdf, width=6)
         
         self.print_but.grid(row = 0, column = 1)
-        self.save_but.grid(row = 0, column = 0)
+        self.reload_but.grid(row = 0, column = 0)
         self.next_frame_but.grid(row = 0, column = 2)
 
+
     def change(self):
-        self.master.employee.save_data()
+        if not self.master.employee.name.get().startswith("[Z]"):
+            self.master.employee.save_data()
         page = self.controller.get_page("PageTwo")
-        page.on_init()
+        page.on_init("work")
         self.controller.show_frame("PageTwo")
+        
     
-    def save(self):
-        self.master.employee.save_data()
+    def reload(self):
+        self.master.employee.read_data()
 
 
     def to_pdf(self):
@@ -480,7 +598,10 @@ class Action_Buttons(LabelFrame):
 
 
 if __name__ == "__main__":
-    data_convert()
+
     app = App()
+
     app.mainloop()
+
+
 
