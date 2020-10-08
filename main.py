@@ -240,7 +240,7 @@ class PageTwo(ttk.Frame):
             pdf.add_font("./data/DejaVuSans", "", "DejaVuSans.ttf", uni=True)
         except Exception as e:
             messagebox.showerror("Błąd", e)
-        pdf.set_font("DejaVuSans", size=11)
+        pdf.set_font("./data/DejaVuSans", size=11)
         
         pdf.add_page()
 
@@ -533,8 +533,8 @@ class Action_Buttons(ttk.LabelFrame):
         x = []
         pdf = FPDF('P', 'mm', 'A4')
 
-        pdf.add_font("DejaVuSans", "", "DejaVuSans.ttf", uni=True)
-        pdf.set_font("DejaVuSans", size=10)
+        pdf.add_font("./data/DejaVuSans", "", "DejaVuSans.ttf", uni=True)
+        pdf.set_font("./data/DejaVuSans", size=10)
         pdf.set_left_margin(16)
 
         pdf.add_page()
