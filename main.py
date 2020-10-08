@@ -15,6 +15,8 @@ from monthdisplay   import *
 from employee       import *
 from menu           import *
 
+BASEDIR = os.path.dirname(os.path.realpath(__file__))
+
 class App(Tk):
     def __init__(self, *kwargs, **args):
         Tk.__init__(self)
@@ -25,14 +27,12 @@ class App(Tk):
         kasia = 'fajna'
 
         self.option_add("*Font", "Arial 8")                     # default font 
-        self.iconbitmap(r"./data/ikonka.ico")                      # window icon
+        self.iconbitmap(os.path.join(BASEDIR, "data/ikonka.ico"))                      # window icon
         self.menu = My_Menu(self, controller=self, background = self.bg)
         self.config(background = self.bg, menu = self.menu)
         self.protocol("WM_DELETE_WINDOW", self.on_exit)
         self.grid_propagate(True)
         self.title("Ewidencja czasu pracy")
-
-
 
         container = ttk.Frame(self)
         container.grid(row=0, column = 0, sticky=NSEW)
@@ -237,10 +237,10 @@ class PageTwo(ttk.Frame):
         pdf = FPDF('L', 'mm', 'A4')
 
         try:
-            pdf.add_font("./data/DejaVuSans", "", "DejaVuSans.ttf", uni=True)
+            pdf.add_font('DejaVuSans', "", os.path.join(BASEDIR, "data/DejaVuSans.ttf"), uni=True) 
         except Exception as e:
             messagebox.showerror("Błąd", e)
-        pdf.set_font("./data/DejaVuSans", size=11)
+        pdf.set_font("DejaVuSans", size=10)
         
         pdf.add_page()
 
@@ -364,14 +364,14 @@ class PageTwo(ttk.Frame):
 
         # check if the file exists, if not then make one
         current_year = page.month.selected_year.get()
-        if not os.path.isfile('./Roczne podsumowanie/' + str(current_year) + ".json"):
+        if not os.path.isfile(os.path.join(BASEDIR,'Roczne podsumowanie', (str(current_year) + ".json"))):
             # create a new dict 
             summary = {
                 "employees" : {}
             }
             names = []
             # iterate over employees
-            for file in sorted(os.listdir("./Pracownicy")):
+            for file in sorted(os.listdir(os.path.join(BASEDIR, "Pracownicy"))):
                 names.append(str(file))
 
             for name in names:
@@ -382,11 +382,11 @@ class PageTwo(ttk.Frame):
                         str("holiday_left_" + str(current_year - 1)) : 0,
                         str("holiday_left_" + str(current_year - 2)) : 0,
                     }
-            with open('./Roczne Podsumowanie/' + str(current_year) + ".json", 'w') as to_save:
+            with open(os.path.join(BASEDIR, 'Roczne Podsumowanie', (str(current_year) + ".json")), 'w') as to_save:
                 json.dump(summary, to_save, indent=4, ensure_ascii=False)
 
 
-        with open('./Roczne podsumowanie/' + str(current_year) + ".json", "r") as f1:
+        with open(os.path.join(BASEDIR, 'Roczne Podsumowanie', (str(current_year) + ".json")), "r") as f1:
             x = json.load(f1)
 
         row = 1
@@ -533,8 +533,8 @@ class Action_Buttons(ttk.LabelFrame):
         x = []
         pdf = FPDF('P', 'mm', 'A4')
 
-        pdf.add_font("./data/DejaVuSans", "", "DejaVuSans.ttf", uni=True)
-        pdf.set_font("./data/DejaVuSans", size=10)
+        pdf.add_font('DejaVuSans', "", os.path.join(BASEDIR, "data/DejaVuSans.ttf"), uni=True)
+        pdf.set_font("DejaVuSans", size=10)
         pdf.set_left_margin(16)
 
         pdf.add_page()
