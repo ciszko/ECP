@@ -16,7 +16,8 @@ options = {
             (os.path.join(PYTHON_INSTALL_DIR, 'DLLs', 'tk86t.dll'),
              os.path.join('lib', 'tk86t.dll')),
             (os.path.join(PYTHON_INSTALL_DIR, 'DLLs', 'tcl86t.dll'), os.path.join('lib', 'tcl86t.dll'))],
-        "packages": ["tkcalendar", "babel.numbers"]
+        "packages": ["tkcalendar", "babel.numbers"],
+        "excludes": ["numpy", "PyQt5", "sqite3", "PyQt4", "scipy"]
     },
 }
 
@@ -31,3 +32,5 @@ setup(name='ECP',
       executables=executables,
       options=options
       )
+
+# C:/Users/ciszk/AppData/Local/Programs/Python/Python37/python.exe setup.py build

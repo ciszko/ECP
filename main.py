@@ -14,6 +14,7 @@ from summary import *
 from monthdisplay import *
 from employee import *
 from menu import *
+import traceback
 
 BASEDIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -27,9 +28,9 @@ class App(Tk):
         self.bg = style.lookup('TFrame', 'background')
         kasia = 'fajna'
 
-        self.option_add("*Font", "Arial 8")                     # default font
-        self.iconbitmap(os.path.join(BASEDIR, "data/ikonka.ico")
-                        )                      # window icon
+        self.option_add("*Font", "Arial 8")  # default font
+        self.iconbitmap(os.path.join(
+            BASEDIR, "data/ikonka.ico"))  # window icon
         self.menu = My_Menu(self, controller=self, background=self.bg)
         self.config(background=self.bg, menu=self.menu)
         self.protocol("WM_DELETE_WINDOW", self.on_exit)
@@ -252,114 +253,118 @@ class PageTwo(ttk.Frame):
         try:
             pdf.add_font('DejaVuSans', "", os.path.join(
                 BASEDIR, "data/DejaVuSans.ttf"), uni=True)
-        except Exception as e:
-            messagebox.showerror("Błąd", e)
-        pdf.set_font("DejaVuSans", size=10)
 
-        pdf.add_page()
+            pdf.set_font("DejaVuSans", size=10)
 
-        spacing = 1.2
+            pdf.add_page()
 
-        if self.offset == 1:
+            spacing = 1.2
 
-            data = [["Imię i nazwisko", "STY", "LUT", "MAR", "KWI", "MAJ", "CZE",
-                     "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem", "Pozostało"]]
+            if self.offset == 1:
 
-            for row in range(1, int(len(self.entries)/15 + 1)):
-                del(x)
-                x = []
-                for col in range(1, 16):
-                    x.append(self.entries[col, row].get())
-                data.append(x)
+                data = [["Imię i nazwisko", "STY", "LUT", "MAR", "KWI", "MAJ", "CZE",
+                         "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem", "Pozostało"]]
 
-            col1_width = pdf.w / 6
-            col2_width = pdf.w / 15
-            col_width = pdf.w / 19
-            row_height = pdf.font_size + 1
-            pdf.cell(0, 10, 'Wykorzystany urlop', 0, 1, 'C')
-
-            rn = 0  # row number
-            ir = 0  # item in row
-
-            for row in data:
-                for item in row:
-                    if rn == 0:
-                        if ir == 14:
-                            pdf.cell(col2_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
-                        elif ir == 0:
-                            pdf.cell(col1_width, row_height *
-                                     spacing, txt=item, border=1)
-                        else:
-                            pdf.cell(col_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
-                    else:
-                        if ir == 14:
-                            pdf.cell(col2_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
-                        elif ir == 0:
-                            pdf.cell(col1_width, row_height *
-                                     spacing, txt=item, border=1)
-                        else:
-                            pdf.cell(col_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
-                    ir += 1
-                pdf.ln(row_height*spacing)
-
-                rn += 1
-                ir = 0
-
-        elif self.offset == 0:
-
-            # make a range of numbers between sliders + 0,13
-            slider_range = self.slider.get_range()
-            applicable_range = [0]
-            applicable_range.extend(
-                list(range(slider_range[0], slider_range[1] + 1)))
-            applicable_range.append(13)
-
-            # column headers
-            data = [["Imię i nazwisko", "STY", "LUT", "MAR", "KWI", "MAJ",
-                     "CZE", "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem"]]
-
-            for row in range(1, int(len(self.entries)/14 + 1)):
-                del(x)
-                x = []
-                for col in range(1, 15):
-                    if col-1 not in applicable_range:
-                        x.append('X')
-                    else:
+                for row in range(1, int(len(self.entries)/15 + 1)):
+                    del(x)
+                    x = []
+                    for col in range(1, 16):
                         x.append(self.entries[col, row].get())
-                data.append(x)
+                    data.append(x)
 
-            col1_width = pdf.w / 6
-            col2_width = pdf.w / 13
-            col_width = pdf.w / 19
-            row_height = pdf.font_size + 1
-            pdf.cell(0, 10, 'Godziny pracy  (GG:MM)', 0, 1, 'C')
+                col1_width = pdf.w / 6
+                col2_width = pdf.w / 15
+                col_width = pdf.w / 19
+                row_height = pdf.font_size + 1
+                pdf.cell(0, 10, 'Wykorzystany urlop', 0, 1, 'C')
 
-            i = 1
+                rn = 0  # row number
+                ir = 0  # item in row
 
-            for row in data:
-                for item in row:
-                    if row.index(item) == 0:
-                        pdf.cell(col1_width, row_height *
-                                 spacing, txt=item, border=1)
-                    elif i == 14:
-                        pdf.cell(col2_width, row_height*spacing,
-                                 txt=item, border=1, align='C')
-                    else:
-                        pdf.cell(col_width, row_height*spacing,
-                                 txt=item, border=1, align='C')
-                    i += 1
+                for row in data:
+                    for item in row:
+                        if rn == 0:
+                            if ir == 14:
+                                pdf.cell(col2_width, row_height*spacing,
+                                         txt=item, border=1, align='C')
+                            elif ir == 0:
+                                pdf.cell(col1_width, row_height *
+                                         spacing, txt=item, border=1)
+                            else:
+                                pdf.cell(col_width, row_height*spacing,
+                                         txt=item, border=1, align='C')
+                        else:
+                            if ir == 14:
+                                pdf.cell(col2_width, row_height*spacing,
+                                         txt=item, border=1, align='C')
+                            elif ir == 0:
+                                pdf.cell(col1_width, row_height *
+                                         spacing, txt=item, border=1)
+                            else:
+                                pdf.cell(col_width, row_height*spacing,
+                                         txt=item, border=1, align='C')
+                        ir += 1
+                    pdf.ln(row_height*spacing)
+
+                    rn += 1
+                    ir = 0
+
+            elif self.offset == 0:
+
+                # make a range of numbers between sliders + 0,13
+                slider_range = self.slider.get_range()
+                applicable_range = [0]
+                applicable_range.extend(
+                    list(range(slider_range[0], slider_range[1] + 1)))
+                applicable_range.append(13)
+
+                # column headers
+                data = [["Imię i nazwisko", "STY", "LUT", "MAR", "KWI", "MAJ",
+                         "CZE", "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU", "Razem"]]
+
+                for row in range(1, int(len(self.entries)/14 + 1)):
+                    del(x)
+                    x = []
+                    for col in range(1, 15):
+                        if col-1 not in applicable_range:
+                            x.append('X')
+                        else:
+                            x.append(self.entries[col, row].get())
+                    data.append(x)
+
+                col1_width = pdf.w / 6
+                col2_width = pdf.w / 13
+                col_width = pdf.w / 19
+                row_height = pdf.font_size + 1
+                pdf.cell(0, 10, 'Godziny pracy  (GG:MM)', 0, 1, 'C')
+
                 i = 1
-                pdf.ln(row_height*spacing)
 
-        pdf_name = (self.title_str.get() + ' raport.pdf')
-        pdf.output(os.path.join(os.getcwd(), "Raporty", pdf_name))
+                for row in data:
+                    for item in row:
+                        if row.index(item) == 0:
+                            pdf.cell(col1_width, row_height *
+                                     spacing, txt=item, border=1)
+                        elif i == 14:
+                            pdf.cell(col2_width, row_height*spacing,
+                                     txt=item, border=1, align='C')
+                        else:
+                            pdf.cell(col_width, row_height*spacing,
+                                     txt=item, border=1, align='C')
+                        i += 1
+                    i = 1
+                    pdf.ln(row_height*spacing)
 
-        os.startfile(os.path.join(os.getcwd(), "Raporty", str(
-            self.title_str.get() + " raport")) + ".pdf")
+            title = self.title_str.get().replace('.', '')
+            pdf_name = (title + ' raport.pdf')
+            pdf_path = os.path.join(os.getcwd(), "Raporty", pdf_name)
+
+            pdf.output(pdf_path, 'F')
+
+            os.startfile(pdf_path)
+        except Exception as e:
+            messagebox.showerror(
+                "Błąd", e)
 
     def on_init(self, type="work"):
 
@@ -561,84 +566,91 @@ class Action_Buttons(ttk.LabelFrame):
 
     def to_pdf(self):
 
-        c_name = str(self.master.employee.name.get())
-        c_month = self.master.month.selected_month.get()
-        c_year = self.master.month.selected_year.get()
-        f_name = str(c_name + "_" + str(c_month) + "_" + str(c_year) + ".pdf")
+        try:
+            c_name = str(self.master.employee.name.get())
+            c_month = self.master.month.selected_month.get()
+            c_year = self.master.month.selected_year.get()
+            f_name = str(c_name + "_" + str(c_month) +
+                         "_" + str(c_year) + ".pdf")
 
-        x = []
-        pdf = FPDF('P', 'mm', 'A4')
-
-        pdf.add_font('DejaVuSans', "", os.path.join(
-            BASEDIR, "data/DejaVuSans.ttf"), uni=True)
-        pdf.set_font("DejaVuSans", size=10)
-        pdf.set_left_margin(16)
-
-        pdf.add_page()
-
-        spacing = 1.2
-
-        data = [["", "Godz. pracy", "Czas przepr.", "50%", "100%",
-                 "Noc", "Szko", "Inne", "Urlop", "Chor", "Uwagi"]]
-
-        for row in range(1, calendar.monthrange(int(c_year), int(c_month))[1] + 1):
-            del(x)
             x = []
-            for col in range(0, 11):
-                if col == 0:
-                    x.append(str(row))
-                else:
-                    x.append(self.master.work_time.entries[row, col].get())
-            data.append(x)
+            pdf = FPDF('P', 'mm', 'A4')
 
-        col0_width = 8
-        col1_width = pdf.w / 9
-        col2_width = 23
-        col10_width = 36
-        col_width = 12
+            pdf.add_font('DejaVuSans', "", os.path.join(
+                BASEDIR, "data/DejaVuSans.ttf"), uni=True)
+            pdf.set_font("DejaVuSans", size=10)
+            pdf.set_left_margin(16)
 
-        row_height = pdf.font_size + 1
-        pdf.cell(0, 10, c_name, 0, 1, 'C')
-        pdf.ln(row_height * spacing)
-        pdf.cell(0, 10, str(str(c_month) + "/" + str(c_year)), 0, 1, 'C')
+            pdf.add_page()
 
-        rn = 0
-        ir = 0
-        for row in data:
-            for item in row:
-                if ir == 0:
-                    pdf.cell(col0_width, row_height*spacing,
-                             txt=item, border=1, align='C')
-                elif ir == 1:
-                    pdf.cell(col1_width, row_height*spacing,
-                             txt=item, border=1, align='C')
-                elif ir == 2:
-                    pdf.cell(col2_width, row_height*spacing,
-                             txt=item, border=1, align='C')
-                elif ir == 10:
-                    pdf.cell(col10_width, row_height*spacing,
-                             txt=item, border=1, align='C')
-                else:
-                    pdf.cell(col_width, row_height*spacing,
-                             txt=item, border=1, align='C')
-                ir += 1
+            spacing = 1.2
+
+            data = [["", "Godz. pracy", "Czas przepr.", "50%", "100%",
+                     "Noc", "Szko", "Inne", "Urlop", "Chor", "Uwagi"]]
+
+            for row in range(1, calendar.monthrange(int(c_year), int(c_month))[1] + 1):
+                del(x)
+                x = []
+                for col in range(0, 11):
+                    if col == 0:
+                        x.append(str(row))
+                    else:
+                        x.append(self.master.work_time.entries[row, col].get())
+                data.append(x)
+
+            col0_width = 8
+            col1_width = pdf.w / 9
+            col2_width = 23
+            col10_width = 36
+            col_width = 12
+
+            row_height = pdf.font_size + 1
+            pdf.cell(0, 10, c_name, 0, 1, 'C')
+            pdf.ln(row_height * spacing)
+            pdf.cell(0, 10, str(str(c_month) + "/" + str(c_year)), 0, 1, 'C')
+
+            rn = 0
+            ir = 0
+            for row in data:
+                for item in row:
+                    if ir == 0:
+                        pdf.cell(col0_width, row_height*spacing,
+                                 txt=item, border=1, align='C')
+                    elif ir == 1:
+                        pdf.cell(col1_width, row_height*spacing,
+                                 txt=item, border=1, align='C')
+                    elif ir == 2:
+                        pdf.cell(col2_width, row_height*spacing,
+                                 txt=item, border=1, align='C')
+                    elif ir == 10:
+                        pdf.cell(col10_width, row_height*spacing,
+                                 txt=item, border=1, align='C')
+                    else:
+                        pdf.cell(col_width, row_height*spacing,
+                                 txt=item, border=1, align='C')
+                    ir += 1
+                pdf.ln(row_height*spacing)
+
+                rn += 1
+                ir = 0
+
             pdf.ln(row_height*spacing)
 
-            rn += 1
-            ir = 0
+            pdf.cell(35, row_height*spacing, str("Harmonogram:"), 1)
+            pdf.cell(17, row_height*spacing,
+                     str(self.master.summary.s_hours_s.get()), 1)
+            pdf.ln(row_height*spacing)
+            pdf.cell(35, row_height*spacing, str("Wykonanie:"), 1)
+            pdf.cell(17, row_height*spacing,
+                     str(self.master.summary.w_hours_s.get()), 1)
 
-        pdf.ln(row_height*spacing)
+            pdf_path = os.path.join(os.getcwd(), "Raporty", f_name)
 
-        pdf.cell(35, row_height*spacing, str("Harmonogram:"), 1)
-        pdf.cell(17, row_height*spacing,
-                 str(self.master.summary.s_hours_s.get()), 1)
-        pdf.ln(row_height*spacing)
-        pdf.cell(35, row_height*spacing, str("Wykonanie:"), 1)
-        pdf.cell(17, row_height*spacing,
-                 str(self.master.summary.w_hours_s.get()), 1)
-
-        pdf.output(os.path.join(os.getcwd(), "Raporty", f_name))
-        os.startfile(os.path.join(os.getcwd(), "Raporty", f_name))
+            pdf.output(pdf_path)
+            os.startfile(pdf_path)
+        except Exception as e:
+            messagebox.showerror(
+                "Błąd", traceback.format_exc())
 
 
 if __name__ == "__main__":
