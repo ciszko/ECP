@@ -15,6 +15,7 @@ from monthdisplay import *
 from employee import *
 from menu import *
 import traceback
+from unidecode import unidecode
 
 BASEDIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -251,10 +252,8 @@ class PageTwo(ttk.Frame):
         pdf = FPDF('L', 'mm', 'A4')
 
         try:
-            pdf.add_font('DejaVuSans', "", os.path.join(
-                BASEDIR, "data/DejaVuSans.ttf"), uni=True)
 
-            pdf.set_font("DejaVuSans", size=10)
+            pdf.set_font("Arial", size=10)
 
             pdf.add_page()
 
@@ -269,7 +268,9 @@ class PageTwo(ttk.Frame):
                     del(x)
                     x = []
                     for col in range(1, 16):
-                        x.append(self.entries[col, row].get())
+                        text = unidecode(
+                            self.entries[col, row].get())
+                        x.append(text)
                     data.append(x)
 
                 col1_width = pdf.w / 6
@@ -283,6 +284,7 @@ class PageTwo(ttk.Frame):
 
                 for row in data:
                     for item in row:
+                        item = item.encode('1252').decode('1252')
                         if rn == 0:
                             if ir == 14:
                                 pdf.cell(col2_width, row_height*spacing,
@@ -344,13 +346,13 @@ class PageTwo(ttk.Frame):
                     for item in row:
                         if row.index(item) == 0:
                             pdf.cell(col1_width, row_height *
-                                     spacing, txt=item, border=1)
+                                     spacing, txt=unidecode(item), border=1)
                         elif i == 14:
                             pdf.cell(col2_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
+                                     txt=unidecode(item), border=1, align='C')
                         else:
                             pdf.cell(col_width, row_height*spacing,
-                                     txt=item, border=1, align='C')
+                                     txt=unidecode(item), border=1, align='C')
                         i += 1
                     i = 1
                     pdf.ln(row_height*spacing)
@@ -364,7 +366,7 @@ class PageTwo(ttk.Frame):
             os.startfile(pdf_path)
         except Exception as e:
             messagebox.showerror(
-                "Błąd", e)
+                "Błąd", traceback.format_exc())
 
     def on_init(self, type="work"):
 
@@ -567,7 +569,7 @@ class Action_Buttons(ttk.LabelFrame):
     def to_pdf(self):
 
         try:
-            c_name = str(self.master.employee.name.get())
+            c_name = unidecode(str(self.master.employee.name.get()))
             c_month = self.master.month.selected_month.get()
             c_year = self.master.month.selected_year.get()
             f_name = str(c_name + "_" + str(c_month) +
@@ -576,9 +578,7 @@ class Action_Buttons(ttk.LabelFrame):
             x = []
             pdf = FPDF('P', 'mm', 'A4')
 
-            pdf.add_font('DejaVuSans', "", os.path.join(
-                BASEDIR, "data/DejaVuSans.ttf"), uni=True)
-            pdf.set_font("DejaVuSans", size=10)
+            pdf.set_font("Arial", size=10)
             pdf.set_left_margin(16)
 
             pdf.add_page()
@@ -613,6 +613,7 @@ class Action_Buttons(ttk.LabelFrame):
             ir = 0
             for row in data:
                 for item in row:
+                    item = item.encode('1252').decode('1252')
                     if ir == 0:
                         pdf.cell(col0_width, row_height*spacing,
                                  txt=item, border=1, align='C')
