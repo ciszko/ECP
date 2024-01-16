@@ -1,11 +1,39 @@
-from tkinter import *
-from tkinter import messagebox
-import os
-import datetime
 import calendar
+import datetime
 import json
-import tkcalendar
+import os
 from shutil import rmtree
+from tkinter import (
+    BOTH,
+    CENTER,
+    END,
+    MULTIPLE,
+    NSEW,
+    SINGLE,
+    BooleanVar,
+    IntVar,
+    Label,
+    Listbox,
+    Menu,
+    N,
+    Scrollbar,
+    StringVar,
+    Toplevel,
+    X,
+    messagebox,
+    ttk,
+)
+
+import tkcalendar
+
+from common import (
+    DAY_OFF_COLOR,
+    EMPLOYEES_DIR,
+    HOLIDAYS_FILE,
+    ICON_FILE,
+    SCHEDULES_DIR,
+    YEARLY_SUMMARY_DIR,
+)
 
 # Simple menu
 
@@ -32,45 +60,55 @@ class My_Menu(Menu):
         self.add_command(label="Wyjście", command=lambda: self.on_exit())
 
         # Employee menu
+        self.employee.add_command(label="Dodaj pracownika", command=self.add_employee)
         self.employee.add_command(
-            label="Dodaj pracownika", command=self.add_employee)
+            label="Zwolnij pracownika", command=self.fire_employee
+        )
         self.employee.add_command(
-            label="Zwolnij pracownika", command=self.fire_employee)
+            label="Edytuj wymiar urlopu", command=self.edit_holiday
+        )
         self.employee.add_command(
-            label="Edytuj wymiar urlopu", command=self.edit_holiday)
+            label="Edytuj imię i nazwisko", command=self.edit_employee
+        )
         self.employee.add_command(
-            label="Edytuj imię i nazwisko", command=self.edit_employee)
+            label="Edytuj datę zatrudnienia/zwolnienia", command=self.edit_dates
+        )
         self.employee.add_command(
-            label="Edytuj datę zatrudnienia/zwolnienia", command=self.edit_dates)
+            label="Odzwolnij pracowników", command=self.unfire_employee
+        )
         self.employee.add_command(
-            label="Odzwolnij pracowników", command=self.unfire_employee)
-        self.employee.add_command(
-            label="Usuń pracownika", underline=1, command=self.del_employee, foreground="red")
+            label="Usuń pracownika",
+            underline=1,
+            command=self.del_employee,
+            foreground="red",
+        )
 
         # File menu
-        self.file.add_command(label="Dodaj harmonogram",
-                              command=self.add_schedule)
-        self.file.add_command(label="Edytuj harmonogramy",
-                              command=self.edit_schedule)
+        self.file.add_command(label="Dodaj harmonogram", command=self.add_schedule)
+        self.file.add_command(label="Edytuj harmonogramy", command=self.edit_schedule)
         self.file.add_command(label="Edytuj święta", command=self.add_holiday)
 
         # Archive menu
-        self.archive.add_checkbutton(label="Wyświetlaj zwolnionych pracowników",
-                                     onvalue=1, offvalue=0, variable=self.show_all, command=self.change_show)
+        self.archive.add_checkbutton(
+            label="Wyświetlaj zwolnionych pracowników",
+            onvalue=1,
+            offvalue=0,
+            variable=self.show_all,
+            command=self.change_show,
+        )
 
         # actions menu
-        self.actions.add_command(
-            label="Przelicz urlopy", command=self.verify_holiday)
+        self.actions.add_command(label="Przelicz urlopy", command=self.verify_holiday)
 
     # add an employee and set it to the current employee
     def add_employee(self):
-
         page = self.controller.get_page("Em_App")
 
         curr_year = page.month.selected_year.get()
 
         pop_up = Toplevel(background=self.controller.bg)
-        pop_up.iconbitmap(r"./data/ecp.ico")
+        if os.name != "posix":
+            pop_up.iconbitmap(ICON_FILE)
         pop_up.title("Dodawanie pracownika")
         pop_up.focus_set()
         var = StringVar()
@@ -81,32 +119,37 @@ class My_Menu(Menu):
             pop_up.grid_columnconfigure(i, weight=1)
 
         ttk.Label(pop_up, text="Imię i nazwisko").grid(
-            row=1, column=1, sticky=NSEW, pady=5, padx=5)
+            row=1, column=1, sticky=NSEW, pady=5, padx=5
+        )
         ttk.Label(pop_up, text="Roczny wymiar urlopu: ").grid(
-            row=3, column=1, sticky=NSEW, pady=5, padx=5)
-        ttk.Label(pop_up, text="Pozostały urlop z " + str(int(curr_year - 1)
-                                                          ) + ":").grid(row=5, column=1, sticky=NSEW, pady=5, padx=5)
-        ttk.Label(pop_up, text="Pozostały urlop z " + str(int(curr_year - 2)
-                                                          ) + ":").grid(row=7, column=1, sticky=NSEW, pady=5, padx=5)
-        ttk.Label(pop_up, text="Data zatrudnienia (dd/mm/rrrr)").grid(row=9,
-                                                                      column=1, sticky=NSEW, pady=5, padx=5)
+            row=3, column=1, sticky=NSEW, pady=5, padx=5
+        )
+        ttk.Label(
+            pop_up, text="Pozostały urlop z " + str(int(curr_year - 1)) + ":"
+        ).grid(row=5, column=1, sticky=NSEW, pady=5, padx=5)
+        ttk.Label(
+            pop_up, text="Pozostały urlop z " + str(int(curr_year - 2)) + ":"
+        ).grid(row=7, column=1, sticky=NSEW, pady=5, padx=5)
+        ttk.Label(pop_up, text="Data zatrudnienia (dd/mm/rrrr)").grid(
+            row=9, column=1, sticky=NSEW, pady=5, padx=5
+        )
 
-        e1 = ttk.Entry(pop_up, justify="center", width=20,
-                       textvariable=var)  # employee name and surname
+        e1 = ttk.Entry(
+            pop_up, justify="center", width=20, textvariable=var
+        )  # employee name and surname
         # yearly holiday
         e2 = ttk.Entry(pop_up, justify="center", width=20)
         # holiday -1 year
         e3 = ttk.Entry(pop_up, justify="center", width=20)
         # holiday -2 year
         e4 = ttk.Entry(pop_up, justify="center", width=20)
-        e5 = ttk.Entry(pop_up, justify="center",
-                       width=20)                      # hire date
+        e5 = ttk.Entry(pop_up, justify="center", width=20)  # hire date
 
         ok = ttk.Button(pop_up, text="Zapisz", command=lambda: save())
 
-        e2.insert(END, '26')    # default values
-        e3.insert(END, '0')
-        e4.insert(END, '0')
+        e2.insert(END, "26")  # default values
+        e3.insert(END, "0")
+        e4.insert(END, "0")
         e5.insert(END, datetime.datetime.now().strftime("%d/%m/%Y"))
 
         e1.grid(row=1, column=3, sticky=NSEW, pady=5, padx=5)
@@ -119,12 +162,17 @@ class My_Menu(Menu):
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
         def autocapitalize(*arg):
             var.set(var.get().title())
 
-        var.trace("w", autocapitalize)
+        var.trace_add("write", autocapitalize)
 
         pop_up.focus_force()
         e1.focus_set()
@@ -132,19 +180,35 @@ class My_Menu(Menu):
         def save():
             answer = e1.get()
             if answer != "":
-                os.mkdir('./Pracownicy/' + e1.get())
-                with open('./Pracownicy/' + e1.get() + '/' + str(curr_year) + '.json', 'w') as f:
+                os.mkdir(EMPLOYEES_DIR / e1.get())
+                with open(
+                    EMPLOYEES_DIR / e1.get() / (str(curr_year) + ".json"), "w"
+                ) as f:
                     to_save = {
                         "yearly_holiday": e2.get(),
                         str("holiday_left_" + str(curr_year - 1)): e3.get(),
                         str("holiday_left_" + str(curr_year - 2)): e4.get(),
                         "holiday": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                        "worked": {"1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {}, "9": {}, "10": {}, "11": {}, "12": {}}
+                        "worked": {
+                            "1": {},
+                            "2": {},
+                            "3": {},
+                            "4": {},
+                            "5": {},
+                            "6": {},
+                            "7": {},
+                            "8": {},
+                            "9": {},
+                            "10": {},
+                            "11": {},
+                            "12": {},
+                        },
                     }
                     json.dump(to_save, f, indent=4, ensure_ascii=False)
 
                 # load yearly summary
-                with open("./Roczne podsumowanie/" + str(curr_year) + ".json", "r") as f:
+                yearly_summary_file = YEARLY_SUMMARY_DIR / (str(curr_year) + ".json")
+                with yearly_summary_file.open() as f:
                     x = json.load(f)
 
                 x["employees"][e1.get()] = {
@@ -156,15 +220,12 @@ class My_Menu(Menu):
                 }
 
                 # yearly summary file
-                with open("./Roczne podsumowanie/" + str(curr_year) + ".json", "w") as f:
+                with yearly_summary_file.open("w") as f:
                     json.dump(x, f, indent=4, ensure_ascii=False)
 
                 # settings file
-                with open('./Pracownicy/' + e1.get() + '/settings.json', 'w') as f:
-                    to_save = {
-                        "hire_date": e5.get(),
-                        "fire_date": ''
-                    }
+                with open(EMPLOYEES_DIR / e1.get() / "settings.json", "w") as f:
+                    to_save = {"hire_date": e5.get(), "fire_date": ""}
                     json.dump(to_save, f, indent=4, ensure_ascii=False)
 
             page.employee.reload_list()
@@ -181,19 +242,28 @@ class My_Menu(Menu):
 
         if len(page.employee.names) == 1:
             messagebox.showerror(
-                "Nie możność", "Nie można usunąć jedynego pracownika. \nAby usunąć obecnego pracownika musisz dodać nowego.", parent=self.controller)
+                "Nie możność",
+                "Nie można usunąć jedynego pracownika. \nAby usunąć obecnego pracownika musisz dodać nowego.",
+                parent=self.controller,
+            )
         else:
             messagebox.showwarning(
-                "Ostrzeżenie", "Usuwając pracownika usunięte zostaną wszystkie jego dane. Po usunięciu nie będzie możliwe odzyskanie danych pracownika", parent=self.controller)
+                "Ostrzeżenie",
+                "Usuwając pracownika usunięte zostaną wszystkie jego dane. Po usunięciu nie będzie możliwe odzyskanie danych pracownika",
+                parent=self.controller,
+            )
 
-            answer = messagebox.askyesno("Usun pracownika", str(
-                "Usunąć pracownika: \n" + name), parent=self.controller)
+            answer = messagebox.askyesno(
+                "Usun pracownika",
+                str("Usunąć pracownika: \n" + name),
+                parent=self.controller,
+            )
             if answer:
-                for file in os.listdir("./Roczne podsumowanie/"):
-                    if str(file).endswith('.json'):
-                        with open("./Roczne podsumowanie/" + str(file), "r") as f:
+                for file in os.listdir(YEARLY_SUMMARY_DIR):
+                    if str(file).endswith(".json"):
+                        with open(YEARLY_SUMMARY_DIR / file, "r") as f:
                             x = json.load(f)
-                        with open("./Roczne podsumowanie/" + str(file), "w") as f:
+                        with open(YEARLY_SUMMARY_DIR / file, "w") as f:
                             try:
                                 x["employees"].pop(name)
                             # if employee doesnt exist in summary
@@ -201,14 +271,13 @@ class My_Menu(Menu):
                                 pass
                             json.dump(x, f, indent=4, ensure_ascii=False)
 
-                rmtree('./Pracownicy/' + name, ignore_errors=True)
+                rmtree(EMPLOYEES_DIR / name, ignore_errors=True)
 
                 page = self.controller.get_page("Em_App")
                 page.employee.reload_list()
                 page.employee.change_combo()
                 page.employee.read_data()
-                self.controller.set_status(
-                    f"Trwale usunięto pracownika {name}")
+                self.controller.set_status(f"Trwale usunięto pracownika {name}")
 
     # add an _ on the begining of the file
 
@@ -217,33 +286,37 @@ class My_Menu(Menu):
         curr_empl = str(page.employee.name_box.get())
         if curr_empl.startswith("[Z]"):
             messagebox.showerror(
-                "Nie możność", "Nie można zwolnić zwolnionego pracownika", parent=self.controller)
+                "Nie możność",
+                "Nie można zwolnić zwolnionego pracownika",
+                parent=self.controller,
+            )
             return
 
         self.fire_date = ""
 
         def save():
             global fire_date_
-            os.rename("./Pracownicy/" + curr_empl,
-                      "./Pracownicy/_" + curr_empl)
+            os.rename(EMPLOYEES_DIR / curr_empl, EMPLOYEES_DIR / f"_{curr_empl}")
 
-            for file in os.listdir("./Roczne podsumowanie/"):
-                if str(file).endswith('.json'):
-                    with open("./Roczne podsumowanie/" + str(file), "r") as f:
+            for file in os.listdir(YEARLY_SUMMARY_DIR):
+                if str(file).endswith(".json"):
+                    with open(YEARLY_SUMMARY_DIR / str(file), "r") as f:
                         x = json.load(f)
-                    with open("./Roczne podsumowanie/" + str(file), "w") as f:
+                    with open(YEARLY_SUMMARY_DIR / str(file), "w") as f:
                         try:
-                            x["employees"][str('_' + curr_empl)
-                                           ] = x["employees"].pop(curr_empl)
+                            x["employees"][str("_" + curr_empl)] = x["employees"].pop(
+                                curr_empl
+                            )
                         # if employee doesnt exist in summary
                         except KeyError:
                             pass
                         json.dump(x, f, indent=4, ensure_ascii=False)
 
-            with open('./Pracownicy/_' + curr_empl + "/settings.json", "r") as f:
+            employee_settings_file = EMPLOYEES_DIR / f"_{curr_empl}" / "settings.json"
+            with employee_settings_file.open() as f:
                 settings = json.load(f)
             settings["fire_date"] = self.fire_date
-            with open('./Pracownicy/_' + curr_empl + "/settings.json", "w") as f:
+            with employee_settings_file.open("w") as f:
                 json.dump(settings, f, indent=4, ensure_ascii=False)
 
             page.employee.reload_list()
@@ -253,30 +326,31 @@ class My_Menu(Menu):
             top.destroy()
             self.controller.focus_set()
             self.controller.set_status(
-                f"Zwolniono pracownika {curr_empl} z datą {self.fire_date}")
+                f"Zwolniono pracownika {curr_empl} z datą {self.fire_date}"
+            )
 
         def color_day(e):
             global fire_date_
-            date_patterns = ['%m/%d/%y', "%d.%m.%Y"]
+            date_patterns = ["%m/%d/%y", "%d.%m.%Y"]
             for pattern in date_patterns:
                 try:
-                    x_date = datetime.datetime.strptime(
-                        cal.get_date(), pattern).date()
+                    x_date = datetime.datetime.strptime(cal.get_date(), pattern).date()
                 except:
                     pass
             self.fire_date = str(x_date.strftime("%d/%m/%Y"))
 
-        answer = messagebox.askyesno("Zwolnij pracownika", str(
-            "Zwolnić pracownika: \n" + curr_empl))
+        answer = messagebox.askyesno(
+            "Zwolnij pracownika", str("Zwolnić pracownika: \n" + curr_empl)
+        )
         if answer:
-
-            messagebox.showinfo("Zwalnianie pracownika",
-                                "Wybierz teraz datę zwolnienia pracownika")
+            messagebox.showinfo(
+                "Zwalnianie pracownika", "Wybierz teraz datę zwolnienia pracownika"
+            )
 
             top = Toplevel(background=self.controller.bg)
             top.title("Data zwolnienia")
             top.focus_set()
-            cal = tkcalendar.Calendar(top, selectmode='day')
+            cal = tkcalendar.Calendar(top, selectmode="day")
             cal.bind("<<CalendarSelected>>", color_day)
             cal.pack(fill=BOTH, expand=True)
             ok = ttk.Button(top, text="Zapisz", command=lambda: save())
@@ -284,15 +358,18 @@ class My_Menu(Menu):
             x = self.controller.winfo_x()
             y = self.controller.winfo_y()
             top.geometry(
-                "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - top.winfo_width()/2, y + 200))
+                "+%d+%d"
+                % (
+                    x + self.controller.winfo_reqwidth() / 2 - top.winfo_width() / 2,
+                    y + 200,
+                )
+            )
 
     # add a working schedule for current month
 
     def add_schedule(self):
-
         # save button function
         def save():
-
             # json dict for rota
             to_save = {
                 "default": False,
@@ -304,8 +381,7 @@ class My_Menu(Menu):
             # get current employee
             page = self.controller.get_page("Em_App")
             curr_employee = page.employee.name.get()
-            empl_list = [multi_select.get(i)
-                         for i in multi_select.curselection()]
+            empl_list = [multi_select.get(i) for i in multi_select.curselection()]
 
             d = page.month.get_date()
             date = datetime.datetime(day=1, month=d[0], year=d[1])
@@ -321,7 +397,12 @@ class My_Menu(Menu):
                 to_save["employees"].append(empl)
 
             # load an existing rota to a dict
-            with open("./Harmonogramy/" + str(page.month.get_date()[1]) + "/" + str(page.month.get_date()[0]) + ".json", "r") as f:
+            with open(
+                SCHEDULES_DIR
+                / str(page.month.get_date()[1])
+                / (str(page.month.get_date()[0]) + ".json"),
+                "r",
+            ) as f:
                 data = json.load(f)
 
             # pop the current employee from custom_rota
@@ -344,54 +425,68 @@ class My_Menu(Menu):
                                 data["custom_rota"].append(empl)
                             is_same = True
                             break
-            if is_same == False:
+            if is_same is False:
                 data["harmonograms"].append(to_save)
                 for empl in empl_list:
                     data["custom_rota"].append(empl)
 
-            with open("./Harmonogramy/" + str(page.month.get_date()[1]) + "/" + str(page.month.get_date()[0]) + ".json", "w") as f:
+            with open(
+                SCHEDULES_DIR
+                / str(page.month.get_date()[1])
+                / (str(page.month.get_date()[0]) + ".json"),
+                "w",
+            ) as f:
                 json.dump(data, f, indent=4)
 
             pop_up.destroy()
             self.controller.focus_set()
             self.controller.set_status(
-                "Dodano harmonogram dla " + ",".join([a for a in empl_list]))
+                "Dodano harmonogram dla " + ",".join([a for a in empl_list])
+            )
 
         # colorize the tile when clicked on
         def color(row):
-            if labels[row].cget("background") == "red":
+            if labels[row].cget("background") == DAY_OFF_COLOR:
                 labels[row].configure(background="SystemButtonFace")
                 entries[row].delete(0, 10)
             else:
-                labels[row].configure(background="red")
+                labels[row].configure(background=DAY_OFF_COLOR)
                 entries[row].delete(0, 10)
 
         # pop_up settings
         page = self.controller.get_page("Em_App")
 
         pop_up = Toplevel(background=self.controller.bg)
-        pop_up.iconbitmap(r"./data/ecp.ico")
+        if os.name != "posix":
+            pop_up.iconbitmap(ICON_FILE)
         pop_up.title("Dodawanie harmonogramu")
         pop_up.focus_set()
 
         pop_up.grid_columnconfigure(0, weight=1)
         pop_up.grid_columnconfigure(3, weight=1)
 
-        date = datetime.datetime(day=1, month=page.month.get_date()[
-                                 0], year=page.month.get_date()[1])
+        date = datetime.datetime(
+            day=1, month=page.month.get_date()[0], year=page.month.get_date()[1]
+        )
 
-        ttk.Label(pop_up, text=str(page.month.selected_month.get()) + "/" + str(page.month.selected_year.get()),
-                  font="Arial 8 bold").grid(row=0, column=1, sticky=N, columnspan=2)
-        multi_select = Listbox(pop_up, selectmode=MULTIPLE, height=len(
-            page.employee.names), justify=CENTER)
+        ttk.Label(
+            pop_up,
+            text=str(page.month.selected_month.get())
+            + "/"
+            + str(page.month.selected_year.get()),
+            font="Arial 8 bold",
+        ).grid(row=0, column=1, sticky=N, columnspan=2)
+        multi_select = Listbox(
+            pop_up, selectmode=MULTIPLE, height=len(page.employee.names), justify=CENTER
+        )
         for name in page.employee.names:
             multi_select.insert(END, name)
-        multi_select.grid(column=3, row=2, rowspan=(
-            len(page.employee.names) + 4))
+        multi_select.grid(column=3, row=2, rowspan=(len(page.employee.names) + 4))
         ttk.Label(pop_up, text="Dla kogo:").grid(row=1, column=3)
 
         ttk.Button(pop_up, text="Zapisz", command=save).grid(
-            row=40, column=1, columnspan=3, sticky=NSEW)
+            row=40, column=1, columnspan=3, sticky=NSEW
+        )
         labels = {}
         entries = {}
 
@@ -402,10 +497,12 @@ class My_Menu(Menu):
 
         the_day = datetime.datetime.weekday(date)
         for day in range(1, calendar.monthrange(date.year, date.month)[1] + 1):
+
             def make_lambda(x):
                 return lambda ev: color(x)
+
             if (the_day) == 5 or (the_day) == 6:
-                labels[day] = Label(pop_up, text=day, background="red")
+                labels[day] = Label(pop_up, text=day, background=DAY_OFF_COLOR)
             else:
                 labels[day] = Label(pop_up, text=day)
                 entries[day].insert(0, "7-15")
@@ -420,19 +517,26 @@ class My_Menu(Menu):
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 10))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 10,
+            )
+        )
 
     # edit employee's holiday
     def edit_holiday(self):
-
         page = self.controller.get_page("Em_App")
         date = page.month.get_date()
 
-        with open("./Pracownicy/" + page.employee.name.get() + "/" + str(date[1]) + ".json", "r") as f:
+        with open(
+            EMPLOYEES_DIR / page.employee.name.get() / (str(date[1]) + ".json"), "r"
+        ) as f:
             data = json.load(f)
 
         pop_up = Toplevel(background=self.controller.bg)
-        pop_up.iconbitmap(r"./data/ecp.ico")
+        if os.name != "posix":
+            pop_up.iconbitmap(ICON_FILE)
         pop_up.title("Edytowanie pracownika")
         pop_up.focus_set()
 
@@ -442,15 +546,24 @@ class My_Menu(Menu):
             pop_up.grid_columnconfigure(i, weight=1)
 
         ttk.Label(pop_up, text="Aktualne wartości", font="Arial 8 bold").grid(
-            row=0, column=0, pady=5, padx=5)
+            row=0, column=0, pady=5, padx=5
+        )
         ttk.Label(pop_up, text="Nowe wartości", font="Arial 8 bold").grid(
-            row=0, column=2, pady=5, padx=5)
-        ttk.Label(pop_up, text="Roczny wymiar urlopu: " +
-                  str(data["yearly_holiday"])).grid(row=1, column=0, pady=5, padx=5)
-        ttk.Label(pop_up, text="Urlop 1 rok wstecz: " + str(data[str(
-            "holiday_left_") + str(date[1] - 1)])).grid(row=2, column=0, pady=5, padx=5)
-        ttk.Label(pop_up, text="Urlop 2 lata wstecz: " + str(data[str(
-            "holiday_left_") + str(date[1] - 2)])).grid(row=3, column=0, pady=5, padx=5)
+            row=0, column=2, pady=5, padx=5
+        )
+        ttk.Label(
+            pop_up, text="Roczny wymiar urlopu: " + str(data["yearly_holiday"])
+        ).grid(row=1, column=0, pady=5, padx=5)
+        ttk.Label(
+            pop_up,
+            text="Urlop 1 rok wstecz: "
+            + str(data[str("holiday_left_") + str(date[1] - 1)]),
+        ).grid(row=2, column=0, pady=5, padx=5)
+        ttk.Label(
+            pop_up,
+            text="Urlop 2 lata wstecz: "
+            + str(data[str("holiday_left_") + str(date[1] - 2)]),
+        ).grid(row=3, column=0, pady=5, padx=5)
 
         e1 = ttk.Entry(pop_up, justify="center", width=8)
         e2 = ttk.Entry(pop_up, justify="center", width=8)
@@ -467,7 +580,12 @@ class My_Menu(Menu):
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
         def save():
             if e1.get() != "":
@@ -477,7 +595,9 @@ class My_Menu(Menu):
             if e3.get() != "":
                 data[str("holiday_left_") + str(date[1] - 2)] = e3.get()
 
-            with open("./Pracownicy/" + page.employee.name.get() + "/" + str(date[1]) + ".json", "w") as f:
+            with open(
+                EMPLOYEES_DIR / page.employee.name.get() / (str(date[1]) + ".json"), "w"
+            ) as f:
                 json.dump(data, f, indent=4)
 
             pop_up.destroy()
@@ -485,19 +605,21 @@ class My_Menu(Menu):
             page.employee.save_data()
             page.employee.read_data()
             self.controller.set_status(
-                f"Zmieniono wymiar urlopu pracwonika {page.employee.name.get()}")
+                f"Zmieniono wymiar urlopu pracwonika {page.employee.name.get()}"
+            )
 
-    # edit employee's name
     def edit_employee(self):
+        """edit employee's name"""
         page = self.controller.get_page("Em_App")
         name = page.employee.name.get()
         curr_year = page.month.selected_year.get()
 
-        with open("./Roczne podsumowanie/" + str(curr_year) + ".json", "r") as f:
+        with open(YEARLY_SUMMARY_DIR / (str(curr_year) + ".json"), "r") as f:
             data = json.load(f)
 
         pop_up = Toplevel(background=self.controller.bg)
-        pop_up.iconbitmap(r"./data/ecp.ico")
+        if os.name != "posix":
+            pop_up.iconbitmap(ICON_FILE)
         pop_up.title("Edytowanie pracownika")
         pop_up.focus_set()
 
@@ -506,11 +628,14 @@ class My_Menu(Menu):
         pop_up.grid_rowconfigure(0, weight=1)
 
         ttk.Label(pop_up, text="Aktualne imię i nazwisko: ").grid(
-            row=1, column=1, pady=5, padx=5)
+            row=1, column=1, pady=5, padx=5
+        )
         ttk.Label(pop_up, text=name, font="Arial 8 italic").grid(
-            row=1, column=2, pady=5, padx=5)
+            row=1, column=2, pady=5, padx=5
+        )
         ttk.Label(pop_up, text="Nowe imię i nazwisko: ").grid(
-            row=2, column=1, pady=5, padx=5)
+            row=2, column=1, pady=5, padx=5
+        )
         ok = ttk.Button(pop_up, text="Zapisz", command=lambda: save())
 
         var = StringVar()
@@ -523,26 +648,32 @@ class My_Menu(Menu):
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
         def autocapitalize(*arg):
             var.set(var.get().title())
 
-        var.trace("w", autocapitalize)
+        var.trace_add("write", autocapitalize)
 
         def save():
             try:
                 if entry.get() != "":
-                    os.rename("./Pracownicy/" + name,
-                              "./Pracownicy/" + entry.get())
+                    os.rename(
+                        str(EMPLOYEES_DIR) / name, str(EMPLOYEES_DIR) / entry.get()
+                    )
 
                 data["employees"][entry.get()] = data["employees"].pop(name)
 
-                for file in os.listdir("./Roczne podsumowanie/"):
-                    if str(file).endswith('.json'):
-                        with open("./Roczne podsumowanie/" + str(file), "r") as f:
+                for file in os.listdir(YEARLY_SUMMARY_DIR):
+                    if str(file).endswith(".json"):
+                        with open(YEARLY_SUMMARY_DIR / file, "r") as f:
                             x = json.load(f)
-                        with open("./Roczne podsumowanie/" + str(file), "w") as f:
+                        with open(YEARLY_SUMMARY_DIR / file, "w") as f:
                             x["employees"][entry.get()] = x["employees"].pop(name)
                             json.dump(x, f, indent=4, ensure_ascii=False)
 
@@ -554,11 +685,11 @@ class My_Menu(Menu):
             pop_up.destroy()
             self.controller.focus_set()
             self.controller.set_status(
-                f"Zmieniono nazwe pracownika z {name} na {entry.get()}")
+                f"Zmieniono nazwe pracownika z {name} na {entry.get()}"
+            )
 
-    # adds holiday for rota's
     def add_holiday(self):
-
+        """adds holiday for rota's"""
         page = self.controller.get_page("Em_App")
         name = page.employee.name.get()
 
@@ -567,16 +698,13 @@ class My_Menu(Menu):
         top.focus_set()
 
         # check if file exists
-        if not os.path.isfile('./Harmonogramy/' + 'swieta.json'):
-            with open('./Harmonogramy/' + 'swieta.json', 'w') as f:
-                to_save = {
-                    "2019": {},
-                    "2020": {}
-                }
+        if not (HOLIDAYS_FILE).exists():
+            with open(HOLIDAYS_FILE, "w") as f:
+                to_save = {"2019": {}, "2020": {}}
                 json.dump(to_save, f, indent=4)
 
         # load the existing holiday
-        with open('./Harmonogramy/' + 'swieta.json', 'r') as f:
+        with open(HOLIDAYS_FILE, "r") as f:
             data = json.load(f)
 
         # list of added and deleted holidays
@@ -585,11 +713,10 @@ class My_Menu(Menu):
 
         # color a day, if colored then decolor
         def color_day(e):
-            date_patterns = ['%m/%d/%y', "%d.%m.%Y"]
+            date_patterns = ["%m/%d/%y", "%d.%m.%Y"]
             for pattern in date_patterns:
                 try:
-                    x_date = datetime.datetime.strptime(
-                        cal.get_date(), pattern).date()
+                    x_date = datetime.datetime.strptime(cal.get_date(), pattern).date()
                 except:
                     pass
             if cal.get_calevents(x_date):
@@ -597,53 +724,58 @@ class My_Menu(Menu):
                 cal.calevent_remove(date=x_date)
             else:
                 add_holiday.append(x_date)
-                cal.calevent_create(x_date, 'X', 'swieto')
+                cal.calevent_create(x_date, "X", "swieto")
 
         def save():
-            # create lists without duplicats
+            """create lists without duplicats"""
             add = list(set(add_holiday) - set(remove_holiday))
             rmv = list(set(remove_holiday) - set(add_holiday))
             for holiday in add:
-                if not str(holiday.year) in data:
+                if str(holiday.year) not in data:
                     data[str(holiday.year)] = {}
-                if not str(holiday.month) in data[str(holiday.year)]:
+                if str(holiday.month) not in data[str(holiday.year)]:
                     data[str(holiday.year)][str(holiday.month)] = []
                 data[str(holiday.year)][str(holiday.month)].append(holiday.day)
             for not_holiday in rmv:
-                if not str(not_holiday.year) in data:
+                if str(not_holiday.year) not in data:
                     data[str(not_holiday.year)] = {}
-                if not str(not_holiday.month) in data[str(not_holiday.year)]:
+                if str(not_holiday.month) not in data[str(not_holiday.year)]:
                     data[str(not_holiday.year)][str(not_holiday.month)] = []
-                data[str(not_holiday.year)][str(
-                    not_holiday.month)].remove(not_holiday.day)
+                data[str(not_holiday.year)][str(not_holiday.month)].remove(
+                    not_holiday.day
+                )
 
-            with open('./Harmonogramy/' + 'swieta.json', 'w') as f:
+            with open(HOLIDAYS_FILE, "w") as f:
                 json.dump(data, f, indent=4)
 
             top.destroy()
             self.controller.focus_set()
             self.controller.set_status("Zapisano świętą")
 
-        cal = tkcalendar.Calendar(top, selectmode='day')
-        cal.tag_config('swieto', background='blue')
-        cal.bind('<<CalendarSelected>>', color_day)
+        cal = tkcalendar.Calendar(top, selectmode="day")
+        cal.tag_config("swieto", background="blue")
+        cal.bind("<<CalendarSelected>>", color_day)
         cal.pack(fill="both", expand=True)
         ttk.Button(top, text="Zapisz", command=save).pack(expand=True)
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
-        top.geometry("+%d+%d" % (x + self.controller.winfo_reqwidth() /
-                                 2 - top.winfo_width()/2, y + 200))
+        top.geometry(
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - top.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
         # add exisiting holiday
         for year in data:
             for month in data[year]:
                 for day in data[year][month]:
-                    date = datetime.date(
-                        year=int(year), month=int(month), day=int(day))
-                    cal.calevent_create(date, 'X', 'swieto')
+                    date = datetime.date(year=int(year), month=int(month), day=int(day))
+                    cal.calevent_create(date, "X", "swieto")
 
-    # edit schedules fore selected employees
     def edit_schedule(self):
+        """edit schedules fore selected employees"""
         page = self.controller.get_page("Em_App")
         pop_up = Toplevel(background=self.controller.bg)
         pop_up.focus_set()
@@ -655,33 +787,40 @@ class My_Menu(Menu):
         edited = {}
 
         def dbclick(e):
-            item = listbox.get('active')  # get clicked item
+            item = listbox.get("active")  # get clicked item
             listbox.delete(0, END)
-            with open('./Harmonogramy/' + item.split('/')[1] + '/' + item.split('/')[0] + '.json', 'r') as f:
+            with open(
+                SCHEDULES_DIR / item.split("/")[1] / (item.split("/")[0] + ".json"),
+                "r",
+            ) as f:
                 curr_schedule = json.load(f)
             for s_id, schedule in enumerate(curr_schedule["harmonograms"]):
                 if schedule["employees"]:
-                    s = ''
+                    s = ""
                     for empl in schedule["employees"]:
-                        s += empl + ', '
+                        s += empl + ", "
                     listbox.insert(END, s)
                 else:
-                    listbox.insert(END, 'DOMYŚLNY')
-            listbox.unbind('<Double-1>')
-            listbox.bind('<Double-1>', dbclick2)
-            label_text.set("Obecny plik: " + './Harmonogramy/' +
-                           item.split('/')[1] + '/' + item.split('/')[0] + '.json')
+                    listbox.insert(END, "DOMYŚLNY")
+            listbox.unbind("<Double-1>")
+            listbox.bind("<Double-1>", dbclick2)
+            label_text.set(
+                "Obecny plik: "
+                + str(
+                    SCHEDULES_DIR / item.split("/")[1] / (item.split("/")[0] + ".json")
+                )
+            )
 
         def dbclick2(e):
             global index_
             global edit_default
-            item = listbox.get('active')
+            item = listbox.get("active")
             if item == "DOMYŚLNY":
                 edit_default = True
             else:
                 edit_default = False
-            to_open = (label_text.get().strip(' ').split(":")[1])
-            with open(to_open[1:], 'r') as f:
+            to_open = label_text.get().strip(" ").split(":")[1]
+            with open(to_open[1:], "r") as f:
                 curr_schedule = json.load(f)
             for s_id, schedule in enumerate(curr_schedule["harmonograms"]):
                 if edit_default:
@@ -698,8 +837,10 @@ class My_Menu(Menu):
             listbox.grid_remove()
 
             for day, hours in curr_schedule["harmonograms"][index_]["days"].items():
+
                 def make_lambda(x):
                     return lambda ev: colorize(x)
+
                 entries_[int(day)] = ttk.Entry(pop_up, width=12)
                 entries_[int(day)].insert(0, hours)
                 entries_[int(day)].grid(row=int(day), column=1)
@@ -709,7 +850,7 @@ class My_Menu(Menu):
                 labels[int(day)].bind("<Button-1>", make_lambda(day))
                 # then load the days off
             for day in curr_schedule["harmonograms"][index_]["days_off"]:
-                labels[int(day)].config(background="red")
+                labels[int(day)].config(background=DAY_OFF_COLOR)
 
             save_button.grid(row=24, rowspan=2, column=5, sticky=NSEW)
             if not edit_default:
@@ -719,8 +860,8 @@ class My_Menu(Menu):
         def del_schedule():
             global index_
             empl_list = [listbox2.get(i) for i in listbox2.curselection()]
-            to_open = (label_text.get().strip(' ').split(":")[1])
-            with open(to_open[1:], 'r') as f:
+            to_open = label_text.get().strip(" ").split(":")[1]
+            with open(to_open[1:], "r") as f:
                 data = json.load(f)
             for em in data["harmonograms"][index_]["employees"]:
                 try:
@@ -729,7 +870,7 @@ class My_Menu(Menu):
                     pass
 
             data["harmonograms"].pop(index_)
-            with open(to_open[1:], 'w') as f:
+            with open(to_open[1:], "w") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
             page.employee.reload_list()
@@ -744,8 +885,8 @@ class My_Menu(Menu):
             global index_
             global edit_default
             empl_list = [listbox2.get(i) for i in listbox2.curselection()]
-            to_open = (label_text.get().strip(' ').split(":")[1])
-            with open(to_open[1:], 'r') as f:
+            to_open = label_text.get().strip(" ").split(":")[1]
+            with open(to_open[1:], "r") as f:
                 data = json.load(f)
             for schedule in data["harmonograms"]:
                 for empl in empl_list:
@@ -776,7 +917,7 @@ class My_Menu(Menu):
             for empl in empl_list:
                 to_save["employees"].append(empl)
 
-            with open(to_open[1:], 'w') as f:
+            with open(to_open[1:], "w") as f:
                 if edit_default:
                     data["harmonograms"][index_] = to_save
                 else:
@@ -794,96 +935,103 @@ class My_Menu(Menu):
         # list of schedule files
         files = ["Kliknij podwójnie aby zedytować harmonogram"]
 
-        for file in os.listdir('./Harmonogramy/'):
-            if not str(file).endswith('.json'):
-                for subfile in os.listdir('./Harmonogramy/' + file + '/'):
-                    if str(subfile).endswith('.json'):
-                        files.append(str(subfile.strip('.json') + "/" + file))
+        for file in os.listdir(SCHEDULES_DIR):
+            if not str(file).endswith(".json"):
+                for subfile in os.listdir(SCHEDULES_DIR / file):
+                    if str(subfile).endswith(".json"):
+                        files.append(str(subfile.strip(".json") + "/" + file))
 
-        files[1:] = sorted(files[1:], key=lambda x: (
-            int(x.split('/')[1]), int(x.split('/')[0])))
+        files[1:] = sorted(
+            files[1:], key=lambda x: (int(x.split("/")[1]), int(x.split("/")[0]))
+        )
 
-        # colorize the tile when clicked on
         def colorize(row):
-            if labels[int(row)].cget("background") == "red":
-                labels[int(row)].configure(background="SystemButtonFace")
-                entries_[int(row)].delete(0, END)
+            """colorize the tile when clicked on"""
+            row = int(row)
+            if labels[row].cget("background") == DAY_OFF_COLOR:
+                labels[row].configure(background="SystemButtonFace")
+                entries_[row].delete(0, END)
             else:
-                labels[int(row)].configure(background="red")
-                entries_[int(row)].delete(0, END)
+                labels[row].configure(background=DAY_OFF_COLOR)
+                entries_[row].delete(0, END)
 
         # make a listbox of files
-        listbox = Listbox(pop_up, selectmode=SINGLE,
-                          height=len(files), width=40)
+        scrollbar = Scrollbar(pop_up, orient="vertical")
+
+        listbox = Listbox(
+            pop_up, selectmode=SINGLE, height=20, width=40, yscrollcommand=scrollbar.set
+        )
         for f in files:
             listbox.insert(END, f)
         label_text = StringVar()
         label_text.set("Obecny plik: ")
         label = ttk.Label(pop_up, textvariable=label_text)
 
-        listbox2 = Listbox(pop_up, selectmode=MULTIPLE,
-                           height=len(page.employee.names))
+        listbox2 = Listbox(pop_up, selectmode=MULTIPLE, height=30)
         for name in page.employee.names:
             listbox2.insert(END, name)
 
-        listbox.bind('<Double-1>', dbclick)
+        listbox.bind("<Double-1>", dbclick)
 
         listbox.grid(row=0)
-        label.grid(row=40, columnspan=6, sticky=NSEW)
+        label.grid(row=1, columnspan=6, sticky=NSEW)
+        scrollbar.grid(row=0, column=1, sticky=NSEW)
 
-        del_button = ttk.Button(
-            pop_up, text="Usuń harmonogram", command=del_schedule)
-        save_button = ttk.Button(
-            pop_up, text="Zapisz harmonogram", command=save)
+        scrollbar.config(command=listbox.yview)
+
+        del_button = ttk.Button(pop_up, text="Usuń harmonogram", command=del_schedule)
+        save_button = ttk.Button(pop_up, text="Zapisz harmonogram", command=save)
         entries_ = {}
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
-    # hire an employee once again
     def unfire_employee(self):
+        """hire an employee once again"""
         page = self.controller.get_page("Em_App")
         pop_up = Toplevel(background=self.controller.bg)
         pop_up.focus_set()
 
         names = []
         # list of fired employees
-        for file in sorted(os.listdir("./Pracownicy")):
+        for file in sorted(os.listdir(EMPLOYEES_DIR)):
             if str(file).startswith("_"):
                 names.append(str(file).strip("_"))
 
         def save():
             empl_list = [listbox.get(i) for i in listbox.curselection()]
             for curr_empl in empl_list:
-                os.rename("./Pracownicy/_" + curr_empl,
-                          "./Pracownicy/" + curr_empl)
+                os.rename(EMPLOYEES_DIR / f"_{curr_empl}", EMPLOYEES_DIR / curr_empl)
 
-                for file in os.listdir("./Roczne podsumowanie/"):
-                    if str(file).endswith('.json'):
-                        with open("./Roczne podsumowanie/" + str(file), "r") as f:
+                for file in os.listdir(YEARLY_SUMMARY_DIR):
+                    if str(file).endswith(".json"):
+                        with open(YEARLY_SUMMARY_DIR / file, "r") as f:
                             x = json.load(f)
-                        with open("./Roczne podsumowanie/" + str(file), "w") as f:
+                        with open(YEARLY_SUMMARY_DIR / file, "w") as f:
                             try:
                                 x["employees"][curr_empl] = x["employees"].pop(
-                                    str("_" + curr_empl))
+                                    str("_" + curr_empl)
+                                )
                             # if employee doesnt exist in summary
                             except KeyError:
                                 pass
                             json.dump(x, f, indent=4, ensure_ascii=False)
 
             try:
-                with open('./Pracownicy/' + curr_empl + "/settings.json", "r") as f:
+                with open(EMPLOYEES_DIR / curr_empl / "settings.json", "r") as f:
                     settings = json.load(f)
                 settings["fire_date"] = ""
 
             except FileNotFoundError:
-                settings = {
-                    "hire_date": "01/01/2000",
-                    "fire_date": ""
-                }
+                settings = {"hire_date": "01/01/2000", "fire_date": ""}
 
-            with open('./Pracownicy/' + curr_empl + "/settings.json", "w") as f:
+            with open(EMPLOYEES_DIR / curr_empl / "settings.json", "w") as f:
                 json.dump(settings, f, indent=4, ensure_ascii=False)
 
             page.employee.reload_list()
@@ -893,23 +1041,32 @@ class My_Menu(Menu):
             self.controller.focus_set()
 
             self.controller.set_status(
-                "Zatrudniono ponownie: " + "".join([a for a in empl_list]))
+                "Zatrudniono ponownie: " + "".join([a for a in empl_list])
+            )
 
-        listbox = Listbox(pop_up, selectmode=MULTIPLE, height=len(names))
+        scrollbar = Scrollbar(pop_up, orient="vertical")
+        listbox = Listbox(
+            pop_up, selectmode=MULTIPLE, height=20, yscrollcommand=scrollbar.set
+        )
         for name in names:
             listbox.insert(END, name)
         save_button = ttk.Button(pop_up, text="Odzwolnij", command=save)
 
         listbox.grid(row=0, sticky=NSEW)
-        save_button.grid(row=999, sticky=NSEW)
+        save_button.grid(row=1, sticky=NSEW)
+        scrollbar.grid(row=0, column=1, sticky=NSEW)
+
+        scrollbar.config(command=listbox.yview)
+
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
-
-    # ask to exit
-    def on_exit(self):
-        self.controller.on_exit()
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
 
     def change_show(self):
         page = self.controller.get_page("Em_App")
@@ -918,25 +1075,39 @@ class My_Menu(Menu):
         page.employee.read_data()
 
         if self.show_all.get():
-            self.controller.set_status(
-                "Włączono wyświetlanie zwolnionych pracowników")
+            self.controller.set_status("Włączono wyświetlanie zwolnionych pracowników")
         else:
-            self.controller.set_status(
-                "Wyłączono wyświetlanie zwolnionych pracowników")
+            self.controller.set_status("Wyłączono wyświetlanie zwolnionych pracowników")
 
     def verify_holiday(self):
-
         # year is selected and next button is pressed
         def next():
             sel_year = listbox.get(listbox.curselection())
             all_em = str(len(empl_dic))
             work_dic = empl_dic.copy()
             for em in empl_dic:
-                if not str(sel_year) in empl_dic[em] or not str(sel_year + 1) in empl_dic[em]:
+                if (
+                    str(sel_year) not in empl_dic[em]
+                    or str(sel_year + 1) not in empl_dic[em]
+                ):
                     work_dic.pop(em)
+            if len(work_dic) == 0:
+                q = messagebox.showwarning(
+                    "Informacja",
+                    f"Nie można kontynuować. Brak pracownika z danymi z lat: "
+                    f"{sel_year} i {sel_year + 1}",
+                )
+                pop_up.destroy()
+                return
 
-            q = messagebox.askyesno("Informacja", "Zmiany wpłyną na " + str(
-                len(work_dic)) + " z " + all_em + " pracowników. Kontynuować?")
+            q = messagebox.askyesno(
+                "Informacja",
+                "Zmiany wpłyną na "
+                + str(len(work_dic))
+                + " z "
+                + all_em
+                + " pracowników. Kontynuować?",
+            )
             if q:
                 num = IntVar()
                 num.set(0)
@@ -965,7 +1136,7 @@ class My_Menu(Menu):
                 def calculate_holiday(emp_num):
                     emp = get_nth_key(work_dic, emp_num)
                     y = work_dic[emp][0]
-                    with open("./Pracownicy/" + emp + "/" + str(y) + ".json", "r") as f:
+                    with open(EMPLOYEES_DIR / emp / (str(y) + ".json"), "r") as f:
                         data = json.load(f)
 
                     # load the holiday
@@ -987,42 +1158,52 @@ class My_Menu(Menu):
                         n_back_1 = yearly
 
                     # laod the next year file
-                    with open("./Pracownicy/" + emp + "/" + str(int(y) + 1) + ".json", "r") as f:
+                    next_year_file = EMPLOYEES_DIR / emp / (str(int(y) + 1) + ".json")
+                    with next_year_file.open() as f:
                         data_1 = json.load(f)
 
                     data_1["holiday_left_" + str((int(y)))] = n_back_1
                     data_1["holiday_left_" + str((int(y) - 1))] = n_back_2
 
                     # overwrite the next year file
-                    with open("./Pracownicy/" + emp + "/" + str(int(y) + 1) + ".json", "w") as f:
+                    with next_year_file.open("w") as f:
                         json.dump(data_1, f, indent=4, ensure_ascii=False)
 
                 # close window
                 def close(event=None):
-                    if progress['value'] == progress["maximum"]:
+                    if progress["value"] == progress["maximum"]:
                         messagebox.showinfo(
-                            "Informacja", "Poprawnie obliczono wszystkie urlopy")
+                            "Informacja", "Poprawnie obliczono wszystkie urlopy"
+                        )
                     else:
                         messagebox.showinfo(
-                            "Informacja", "Anulowano obliczanie urlopów")
+                            "Informacja", "Anulowano obliczanie urlopów"
+                        )
                     self.controller.focus_set()  # put focus back to the parent window
-                    pop_up.destroy()    # destroy first pop up
-                    new_pop.destroy()   # destroy progress window
+                    pop_up.destroy()  # destroy first pop up
+                    new_pop.destroy()  # destroy progress window
                     self.master.employee.read_data()
 
                 new_pop = Toplevel(background=self.controller.bg)
                 new_pop.focus_set()
 
                 progress = ttk.Progressbar(
-                    new_pop, orient="horizontal", length=100, mode="determinate", variable=num)
+                    new_pop,
+                    orient="horizontal",
+                    length=100,
+                    mode="determinate",
+                    variable=num,
+                )
                 progress["maximum"] = len(work_dic)
-                ttk.Label(new_pop, text="Obliczam wszystkie urlopy, może to zająć chwilkę.").grid(
-                    row=0, sticky=NSEW)
+                ttk.Label(
+                    new_pop, text="Obliczam wszystkie urlopy, może to zająć chwilkę."
+                ).grid(row=0, sticky=NSEW)
                 progress.grid(row=1, sticky=NSEW)
                 x = self.controller.winfo_x()
                 y = self.controller.winfo_y()
                 new_pop.geometry(
-                    "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - 200, y + 200))
+                    "+%d+%d" % (x + self.controller.winfo_reqwidth() / 2 - 200, y + 200)
+                )
 
                 next()
 
@@ -1034,40 +1215,49 @@ class My_Menu(Menu):
         empl_dic = {}
 
         # find min and max year in the app
-        for directory in os.listdir("./Pracownicy/"):
-            empl_dic[directory] = []
-            for file in os.listdir("./Pracownicy/" + directory):
-                if file.endswith(".json") and not file.startswith("settings"):
-                    empl_dic[directory].append(file.split(".")[0])
-                    if int(file.split(".")[0]) < min_year:
-                        min_year = int(file.split(".")[0])
-                    if int(file.split(".")[0]) > max_year:
-                        max_year = int(file.split(".")[0])
+        for employee in os.listdir(EMPLOYEES_DIR):
+            empl_dic[employee] = []
+            for year_file in (EMPLOYEES_DIR / employee).iterdir():
+                if year_file.suffix != ".json" or not year_file.stem.isdigit():
+                    continue
+                year = int(year_file.stem)
+                empl_dic[employee].append(year)
+                if year < min_year:
+                    min_year = year
+                if year > max_year:
+                    max_year = year
 
         # create a list of possible years
         if min_year == max_year:
             messagebox.showinfo(
-                "Błąd", "Nie można przeliczyć urlopów dla żadnego roku. Przy przejściu na następny rok zostaną one policzone same. Dopiero wtedy można spróbować przeliczyć je jeszcze raz")
+                "Błąd",
+                "Nie można przeliczyć urlopów dla żadnego roku. "
+                "Przy przejściu na następny rok zostaną one policzone same. "
+                "Dopiero wtedy można spróbować przeliczyć je jeszcze raz",
+            )
             pop_up.destroy()
             self.controller.focus_set()
 
-        possible_years = []
-        for i in range(0, max_year-min_year):
-            possible_years.append(min_year+i)
+        possible_years = [min_year + i for i in range(0, max_year - min_year)]
 
-        ttk.Label(pop_up, text="Wybierz z którego roku chcesz przeliczyć urlopy. Wpłynie to na urlopy w roku następnym").grid(
-            row=0, pady=6)
-        listbox = Listbox(pop_up, selectmode=SINGLE,
-                          height=len(possible_years), justify=CENTER)
+        ttk.Label(
+            pop_up,
+            text="Wybierz z którego roku chcesz przeliczyć urlopy. "
+            "Wpłynie to na urlopy w roku następnym",
+        ).grid(row=0, pady=6)
+        listbox = Listbox(
+            pop_up, selectmode=SINGLE, height=len(possible_years), justify=CENTER
+        )
         # fill the listbox with years
-        for year in possible_years:
-            listbox.insert(END, year)
+        for year_file in possible_years:
+            listbox.insert(END, year_file)
         listbox.grid(row=1)
         ttk.Button(pop_up, text="Dalej", command=next).grid(row=3, sticky=NSEW)
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
-        pop_up.geometry("+%d+%d" %
-                        (x + self.controller.winfo_reqwidth()/2 - 200, y + 200))
+        pop_up.geometry(
+            "+%d+%d" % (x + self.controller.winfo_reqwidth() / 2 - 200, y + 200)
+        )
 
     def edit_dates(self):
         pop_up = Toplevel(background=self.controller.bg)
@@ -1076,40 +1266,37 @@ class My_Menu(Menu):
 
         ttk.Label(pop_up, text="Aktualnie").grid(row=0, column=1, pady=5)
         ttk.Label(pop_up, text="Nowe wartości").grid(row=0, column=2, pady=5)
-        ttk.Label(pop_up, text="Data zatrudnienia").grid(
-            row=1, column=0, pady=5)
-        ttk.Label(pop_up, text=settings["hire_date"]).grid(
-            row=1, column=1, pady=5)
+        ttk.Label(pop_up, text="Data zatrudnienia").grid(row=1, column=0, pady=5)
+        ttk.Label(pop_up, text=settings["hire_date"]).grid(row=1, column=1, pady=5)
         if settings["fire_date"] != "":
-            ttk.Label(pop_up, text="Data zwolnienia").grid(
-                row=2, column=0, pady=5)
-            ttk.Label(pop_up, text=settings["fire_date"]).grid(
-                row=2, column=1, pady=5)
+            ttk.Label(pop_up, text="Data zwolnienia").grid(row=2, column=0, pady=5)
+            ttk.Label(pop_up, text=settings["fire_date"]).grid(row=2, column=1, pady=5)
             fire_cal = tkcalendar.DateEntry(
-                pop_up, borderwidth=2, year=datetime.datetime.now().year)
-            fire_date = datetime.datetime.strptime(
-                settings["fire_date"], "%d/%m/%Y")
+                pop_up, borderwidth=2, year=datetime.datetime.now().year
+            )
+            fire_date = datetime.datetime.strptime(settings["fire_date"], "%d/%m/%Y")
             fire_cal.set_date(fire_date)
             fire_cal.grid(row=2, column=2, pady=5)
 
-        hire_date = datetime.datetime.strptime(
-            settings["hire_date"], "%d/%m/%Y")
+        hire_date = datetime.datetime.strptime(settings["hire_date"], "%d/%m/%Y")
         hire_cal = tkcalendar.DateEntry(
-            pop_up, borderwidth=2, year=datetime.datetime.now().year)
+            pop_up, borderwidth=2, year=datetime.datetime.now().year
+        )
         hire_cal.set_date(hire_date)
         hire_cal.grid(row=1, column=2, pady=5)
 
         def save():
-            name = page.employee.name.get()
+            name: str = page.employee.name.get()
             if "[Z]" in name:
                 name = name.replace("[Z]", "_")
-            with open("./Pracownicy/" + name + "/" + "settings.json", "r") as f:
+            employee_settings_file = EMPLOYEES_DIR / name / "settings.json"
+            with employee_settings_file.open() as f:
                 data = json.load(f)
             data["hire_date"] = hire_cal.get_date().strftime("%d/%m/%Y")
             if settings["fire_date"] != "":
                 data["fire_date"] = fire_cal.get_date().strftime("%d/%m/%Y")
 
-            with open("./Pracownicy/" + name + "/" + "settings.json", "w") as f:
+            with employee_settings_file.open("w") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
             page.employee.read_data()
@@ -1122,4 +1309,13 @@ class My_Menu(Menu):
         x = self.controller.winfo_x()
         y = self.controller.winfo_y()
         pop_up.geometry(
-            "+%d+%d" % (x + self.controller.winfo_reqwidth()/2 - pop_up.winfo_width()/2, y + 200))
+            "+%d+%d"
+            % (
+                x + self.controller.winfo_reqwidth() / 2 - pop_up.winfo_width() / 2,
+                y + 200,
+            )
+        )
+
+    def on_exit(self):
+        """asked to exit"""
+        self.controller.on_exit()
